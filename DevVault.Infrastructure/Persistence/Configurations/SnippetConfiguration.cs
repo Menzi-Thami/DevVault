@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DevVault.Infrastructure.Persistence.Configurations;
 
-public class SnippetConfiguration
+public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
 {
     public void Configure(EntityTypeBuilder<Snippet> builder)
     {
