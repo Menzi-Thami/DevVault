@@ -22,6 +22,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Enforce HTTPS at the client via HSTS outside development (dev/tests stay on
+    // plain HTTP). Pairs with UseHttpsRedirection below.
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
