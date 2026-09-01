@@ -2,6 +2,7 @@ using DevVault.Application.Common.Interfaces;
 using DevVault.Application.Snippets.Commands.CreateSnippet;
 using DevVault.Domain.Common;
 using DevVault.Domain.Entities;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Shouldly;
@@ -17,7 +18,7 @@ public class CreateSnippetHandlerTests
     [Fact]
     public async Task HandleAsync_PersistsSnippet_AndStampsInjectedClock()
     {
-        var handler = new CreateSnippetHandler(_repository, _time);
+        var handler = new CreateSnippetHandler(_repository, _time, NullLogger<CreateSnippetHandler>.Instance);
         var command = new CreateSnippetCommand("Title", "code", "C#", Guid.NewGuid());
 
         var result = await handler.HandleAsync(command);
@@ -31,7 +32,7 @@ public class CreateSnippetHandlerTests
     [Fact]
     public async Task HandleAsync_WithInvalidInput_ThrowsAndDoesNotSave()
     {
-        var handler = new CreateSnippetHandler(_repository, _time);
+        var handler = new CreateSnippetHandler(_repository, _time, NullLogger<CreateSnippetHandler>.Instance);
         var command = new CreateSnippetCommand("", "code", "C#", Guid.NewGuid());
 
         await Should.ThrowAsync<DomainException>(() => handler.HandleAsync(command));

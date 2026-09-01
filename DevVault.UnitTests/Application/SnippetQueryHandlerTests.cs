@@ -3,6 +3,7 @@ using DevVault.Application.Common.Interfaces;
 using DevVault.Application.Snippets.Queries.GetSnippetById;
 using DevVault.Application.Snippets.Queries.ListSnippets;
 using DevVault.Domain.Entities;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
 using Xunit;
@@ -19,7 +20,7 @@ public class SnippetQueryHandlerTests
     {
         var snippet = Snippet.Create("t", "c", "C#", Guid.NewGuid(), At);
         _repository.GetByIdAsync(snippet.Id, Arg.Any<CancellationToken>()).Returns(snippet);
-        var handler = new GetSnippetByIdHandler(_repository);
+        var handler = new GetSnippetByIdHandler(_repository, NullLogger<GetSnippetByIdHandler>.Instance);
 
         var dto = await handler.HandleAsync(snippet.Id);
 
@@ -30,7 +31,7 @@ public class SnippetQueryHandlerTests
     public async Task GetById_WhenMissing_ThrowsNotFound()
     {
         _repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Snippet?)null);
-        var handler = new GetSnippetByIdHandler(_repository);
+        var handler = new GetSnippetByIdHandler(_repository, NullLogger<GetSnippetByIdHandler>.Instance);
 
         await Should.ThrowAsync<NotFoundException>(() => handler.HandleAsync(Guid.NewGuid()));
     }
@@ -44,7 +45,7 @@ public class SnippetQueryHandlerTests
             Snippet.Create("b", "c", "JS", Guid.NewGuid(), At)
         };
         _repository.ListAsync(Arg.Any<CancellationToken>()).Returns(snippets);
-        var handler = new ListSnippetsHandler(_repository);
+        var handler = new ListSnippetsHandler(_repository, NullLogger<ListSnippetsHandler>.Instance);
 
         var result = await handler.HandleAsync();
 
