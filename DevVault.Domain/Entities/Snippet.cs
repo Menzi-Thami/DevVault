@@ -1,3 +1,6 @@
+using DevVault.Domain.Common;
+using DevVault.Domain.ValueObjects;
+
 namespace DevVault.Domain.Entities;
 
 /// <summary>
@@ -10,7 +13,7 @@ public class Snippet
     public Guid Id { get; private set; }
     public string Title { get; private set; } = null!;
     public string Content { get; private set; } = null!;
-    public string Language { get; private set; } = null!;
+    public Language Language { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
@@ -21,6 +24,7 @@ public class Snippet
     /// Creates a valid snippet. The timestamp is passed in (rather than read
     /// from <c>DateTime.UtcNow</c>) so creation is deterministic and testable;
     /// the caller supplies it from an injected <see cref="TimeProvider"/>.
+    /// Invariant violations throw <see cref="DomainException"/>.
     /// </summary>
     public static Snippet Create(
         string title,
@@ -30,20 +34,18 @@ public class Snippet
         DateTime createdAt)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Title cannot be empty", nameof(title));
+            throw new DomainException("Title cannot be empty");
         if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Content cannot be empty", nameof(content));
-        if (string.IsNullOrWhiteSpace(language))
-            throw new ArgumentException("Language cannot be empty", nameof(language));
+            throw new DomainException("Content cannot be empty");
         if (createdByUserId == Guid.Empty)
-            throw new ArgumentException("CreatedByUserId cannot be empty", nameof(createdByUserId));
+            throw new DomainException("CreatedByUserId cannot be empty");
 
         return new Snippet
         {
             Id = Guid.NewGuid(),
             Title = title.Trim(),
             Content = content,
-            Language = language.Trim(),
+            Language = Language.From(language),   // value object self-validates
             CreatedByUserId = createdByUserId,
             CreatedAt = createdAt
         };

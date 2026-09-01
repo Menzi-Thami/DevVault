@@ -1,5 +1,6 @@
 using DevVault.Application.Common.Interfaces;
 using DevVault.Application.Snippets.Commands.CreateSnippet;
+using DevVault.Domain.Common;
 using DevVault.Domain.Entities;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
@@ -33,7 +34,7 @@ public class CreateSnippetHandlerTests
         var handler = new CreateSnippetHandler(_repository, _time);
         var command = new CreateSnippetCommand("", "code", "C#", Guid.NewGuid());
 
-        await Should.ThrowAsync<ArgumentException>(() => handler.HandleAsync(command));
+        await Should.ThrowAsync<DomainException>(() => handler.HandleAsync(command));
         await _repository.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

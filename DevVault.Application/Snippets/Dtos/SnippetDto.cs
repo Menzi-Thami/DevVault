@@ -11,5 +11,5 @@ public sealed record SnippetDto(
     Guid CreatedByUserId)
 {
     public static SnippetDto FromEntity(Snippet s) =>
-        new(s.Id, s.Title, s.Content, s.Language, s.CreatedAt, s.CreatedByUserId);
+        new(s.Id, s.Title, s.Content, s.Language.Value, s.CreatedAt, s.CreatedByUserId);
 }

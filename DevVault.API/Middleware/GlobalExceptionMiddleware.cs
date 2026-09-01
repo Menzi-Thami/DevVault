@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using DevVault.Application.Common.Exceptions;
+using DevVault.Domain.Common;
 
 namespace DevVault.API.Middleware;
 
@@ -21,6 +22,7 @@ public sealed class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glob
             var status = ex switch
             {
                 NotFoundException => HttpStatusCode.NotFound,
+                DomainException => HttpStatusCode.BadRequest,
                 ArgumentException => HttpStatusCode.BadRequest,
                 _ => HttpStatusCode.InternalServerError
             };
