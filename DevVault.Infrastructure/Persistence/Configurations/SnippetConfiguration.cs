@@ -1,4 +1,5 @@
-﻿using DevVault.Domain.Entities;
+using DevVault.Domain.Entities;
+using DevVault.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,7 +18,9 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
         builder.Property(s => s.Content)
             .IsRequired();
 
+        // Store the Language value object as its underlying string.
         builder.Property(s => s.Language)
+            .HasConversion(language => language.Value, value => Language.From(value))
             .IsRequired()
             .HasMaxLength(50);
 
