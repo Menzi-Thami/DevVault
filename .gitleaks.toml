@@ -1,0 +1,30 @@
+# Extends the built-in gitleaks rules rather than replacing them.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "sql-connection-string-inline-password"
+description = "SQL connection string with an inline password"
+regex = '''(?i)(server|data source)\s*=\s*[^;"'\n]{1,120};[^"'\n]{0,200}?(password|pwd)\s*=\s*[^;"'\s]{3,}'''
+tags = ["connection-string", "credential"]
+
+[[rules]]
+id = "sql-connection-string-ip-host"
+description = "Connection string pointing at a hard-coded host address"
+regex = '''(?i)(server|data source)\s*=\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'''
+tags = ["connection-string", "internal-host"]
+
+[allowlist]
+description = "Known-safe paths and local-only values"
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)(bin|obj|node_modules|dist|\.next)/''',
+]
+regexTarget = "match"
+regexes = [
+  # Local development targets are not secrets.
+  '''(?i)(server|data source)\s*=\s*\(localdb\)''',
+  '''(?i)(server|data source)\s*=\s*localhost''',
+  '''(?i)(server|data source)\s*=\s*\(local\)''',
+  '''(?i)(server|data source)\s*=\s*\.\''',
+]
