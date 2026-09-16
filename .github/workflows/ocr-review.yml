@@ -1,0 +1,63 @@
+name: AI code review
+
+# Inert until you opt in. The job is gated on the OCR_ENABLED variable, so this
+# file can sit here without failing every pull request before the key exists:
+#
+#   1. gh secret   set OCR_LLM_AUTH_TOKEN --repo <repo>   # your Gemini API key
+#   2. gh variable set OCR_ENABLED --body "true" --repo <repo>
+#
+# OCR_LLM_URL / _MODEL / _USE_ANTHROPIC are already set as repository variables.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ocr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Bot pull requests are skipped: without this every Dependabot bump spends
+    # quota for nothing.
+    if: >-
+      vars.OCR_ENABLED == 'true'
+      && github.event.pull_request.user.type != 'Bot'
+    steps:
+      - name: Fetch shared .NET review rules
+        uses: actions/checkout@v7
+        with:
+          repository: Menzi-Thami/dotnet-review-rules
+          ref: main
+          path: .review-rules
+
+      - uses: alibaba/open-code-review@main
+        with:
+          llm_url: ${{ vars.OCR_LLM_URL }}
+          llm_auth_token: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
+          llm_model: ${{ vars.OCR_LLM_MODEL }}
+          llm_use_anthropic: ${{ vars.OCR_LLM_USE_ANTHROPIC }}
+          rule: .review-rules/.opencodereview/rule.json
+
+          # Gemini speaks the OpenAI-compatible protocol, so the action's
+          # default extra_body (an Anthropic-shaped "thinking" key) does not
+          # apply. Sent empty to avoid a 400 on an unknown field.
+          llm_extra_body: '{}'
+
+          # Free-tier tuning. The free Gemini tier caps requests per minute,
+          # and a review fans out one request per file, so concurrency is held
+          # down to stay under it. Raise it on a paid key.
+          review_concurrency: '2'
+          effort: 'low'
+          max_tokens_budget: '1000000'
+
+          sticky_summary: 'true'
+          incremental: 'true'
+          route_severity_below: 'low'
