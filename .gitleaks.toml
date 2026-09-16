@@ -22,9 +22,10 @@ paths = [
 ]
 regexTarget = "match"
 regexes = [
-  # Local development targets are not secrets.
+  # Local development targets are not secrets. Kept deliberately simple:
+  # every pattern here must parse under RE2, the engine gitleaks uses.
   '''(?i)(server|data source)\s*=\s*\(localdb\)''',
   '''(?i)(server|data source)\s*=\s*localhost''',
   '''(?i)(server|data source)\s*=\s*\(local\)''',
-  '''(?i)(server|data source)\s*=\s*\.\''',
+  '''(?i)(server|data source)\s*=\s*127\.0\.0\.1''',
 ]
