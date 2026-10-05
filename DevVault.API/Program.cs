@@ -2,8 +2,17 @@ using System.Diagnostics;
 using DevVault.API.ErrorHandling;
 using DevVault.Application;
 using DevVault.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fail at startup, in every environment (the defaults are Development-only), on missing
+// registrations and scoped-into-singleton captures.
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -18,7 +27,7 @@ builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
 // Each layer owns its own registration (composition root).
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure();
 
 var app = builder.Build();
 
@@ -39,6 +48,13 @@ else
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+// Liveness has no dependency checks, so a database blip doesn't get every instance restarted.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(HealthCheckTags.Ready)
+});
 app.MapControllers();
 
 app.Run();

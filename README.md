@@ -57,6 +57,10 @@ dotnet ef database update --project DevVault.Infrastructure --startup-project De
 dotnet run --project DevVault.API
 ```
 
+The connection string is validated at startup, so without it the API refuses to boot rather than
+failing on the first request. `/health/live` (process up, no dependency checks) and
+`/health/ready` (includes a database check) are there for probes.
+
 ## Tests
 
 ```bash
