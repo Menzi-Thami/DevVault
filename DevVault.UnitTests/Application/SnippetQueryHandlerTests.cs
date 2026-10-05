@@ -13,7 +13,7 @@ namespace DevVault.UnitTests.Application;
 public class SnippetQueryHandlerTests
 {
     private readonly ISnippetRepository _repository = Substitute.For<ISnippetRepository>();
-    private static readonly DateTime At = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTimeOffset At = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task GetById_WhenFound_ReturnsDto()

@@ -23,7 +23,7 @@ public sealed class CreateSnippetHandler(
             command.Content,
             command.Language,
             command.CreatedByUserId,
-            timeProvider.GetUtcNow().UtcDateTime);
+            timeProvider.GetUtcNow());
 
         await repository.AddAsync(snippet, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

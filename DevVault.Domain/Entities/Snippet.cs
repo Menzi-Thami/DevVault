@@ -19,7 +19,7 @@ public class Snippet
     public string Title { get; private set; } = null!;
     public string Content { get; private set; } = null!;
     public Language Language { get; private set; } = null!;
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
     // Required by EF Core for materialisation. Not for application use.
@@ -29,6 +29,7 @@ public class Snippet
     /// Creates a valid snippet. The timestamp is passed in (rather than read
     /// from <c>DateTime.UtcNow</c>) so creation is deterministic and testable;
     /// the caller supplies it from an injected <see cref="TimeProvider"/>.
+    /// It is stored as UTC so a persisted value is never ambiguous about its zone.
     /// Invariant violations throw <see cref="DomainException"/>.
     /// </summary>
     public static Snippet Create(
@@ -36,7 +37,7 @@ public class Snippet
         string content,
         string language,
         Guid createdByUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new DomainException("Title cannot be empty");
@@ -56,7 +57,7 @@ public class Snippet
             Content = content,
             Language = Language.From(language),   // value object self-validates
             CreatedByUserId = createdByUserId,
-            CreatedAt = createdAt
+            CreatedAt = createdAt.ToUniversalTime()
         };
     }
 }

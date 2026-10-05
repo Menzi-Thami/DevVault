@@ -24,7 +24,7 @@ public class CreateSnippetHandlerTests
         var result = await handler.HandleAsync(command);
 
         result.Title.ShouldBe("Title");
-        result.CreatedAt.ShouldBe(_time.GetUtcNow().UtcDateTime);   // proves the clock is injected
+        result.CreatedAt.ShouldBe(_time.GetUtcNow());   // proves the clock is injected
         await _repository.Received(1).AddAsync(Arg.Any<Snippet>(), Arg.Any<CancellationToken>());
         await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
