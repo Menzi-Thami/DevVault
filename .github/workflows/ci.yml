@@ -18,6 +18,24 @@ jobs:
     name: Build & test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Real SQL Server for DevVault.IntegrationTests (LocalDB is Windows-only). The container
+    # lives for this job only; the password just has to satisfy SQL Server's complexity rules.
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: DevVault-ci-${{ github.run_id }}!
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+          --health-start-period 20s
+
     steps:
       - uses: actions/checkout@v7
 
@@ -33,6 +51,9 @@ jobs:
 
       - name: Test
         run: dotnet test "DevVault.sln" -c Release --no-build --logger "trx;LogFileName=results.trx"
+        env:
+          # Read by DevVaultApiFactory; without it the integration tests fall back to LocalDB.
+          DEVVAULT_TEST_SQL: Server=localhost,1433;Database=DevVault_IntegrationTests;User Id=sa;Password=DevVault-ci-${{ github.run_id }}!;TrustServerCertificate=True
 
       - name: Upload test results
         if: always()

@@ -59,8 +59,17 @@ dotnet run --project DevVault.API
 dotnet test DevVault.sln
 ```
 
-19 unit tests — xUnit, Shouldly, NSubstitute, `FakeTimeProvider` — covering the domain
-invariants and each handler. They run on every push and pull request via GitHub Actions.
+Three test projects, all run on every push and pull request via GitHub Actions:
+
+- **DevVault.UnitTests** — xUnit, Shouldly, NSubstitute, `FakeTimeProvider`; the domain
+  invariants and each handler against a substituted repository.
+- **DevVault.IntegrationTests** — the real HTTP pipeline (`WebApplicationFactory<Program>`) over
+  a real SQL Server database: EF translation, the migrations, error mapping and the HTTP
+  contract. The database is rebuilt from the migrations once per run and emptied between tests
+  with Respawn. Locally it uses LocalDB (`DevVault_IntegrationTests`); set `DEVVAULT_TEST_SQL` to
+  a connection string to point it elsewhere — CI points it at a SQL Server service container.
+- **DevVault.ArchitectureTests** — ArchUnitNET rules for the inward-only layering above, plus a
+  check that Domain and Application reference neither EF Core nor ASP.NET Core.
 
 ## Licence
 
