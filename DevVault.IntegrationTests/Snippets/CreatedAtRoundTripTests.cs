@@ -12,13 +12,12 @@ namespace DevVault.IntegrationTests.Snippets;
 /// </summary>
 public sealed class CreatedAtRoundTripTests(DevVaultApiFactory factory) : IntegrationTestBase(factory)
 {
-    private static readonly Guid User = Guid.Parse("8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10");
 
     [Fact]
     public async Task CreatedAt_IsIdenticalOnPostAndGet_AndCarriesAnOffset()
     {
         var post = await Client.PostAsJsonAsync("/api/snippets",
-            new { title = "t", content = "c", language = "C#", createdByUserId = User });
+            new { title = "t", content = "c", language = "C#" });
         var posted = CreatedAt(await post.Content.ReadFromJsonAsync<JsonElement>());
 
         var fetched = CreatedAt(await Client.GetFromJsonAsync<JsonElement>(post.Headers.Location));

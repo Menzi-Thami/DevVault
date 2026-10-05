@@ -13,12 +13,14 @@ public sealed class SnippetRepository(AppDbContext context) : ISnippetRepository
     public async Task AddAsync(Snippet snippet, CancellationToken cancellationToken = default) =>
         await context.Snippets.AddAsync(snippet, cancellationToken);
 
-    public async Task<Snippet?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await context.Snippets.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    public async Task<Snippet?> GetByIdAsync(Guid id, Guid ownerId, CancellationToken cancellationToken = default) =>
+        await context.Snippets.FirstOrDefaultAsync(
+            s => s.Id == id && s.CreatedByUserId == ownerId, cancellationToken);
 
-    public async Task<IReadOnlyList<Snippet>> ListAsync(CancellationToken cancellationToken = default) =>
+    public async Task<IReadOnlyList<Snippet>> ListAsync(Guid ownerId, CancellationToken cancellationToken = default) =>
         await context.Snippets
             .AsNoTracking()
+            .Where(s => s.CreatedByUserId == ownerId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(cancellationToken);
 

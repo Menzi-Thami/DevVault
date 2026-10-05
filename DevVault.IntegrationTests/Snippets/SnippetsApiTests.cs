@@ -9,7 +9,6 @@ namespace DevVault.IntegrationTests.Snippets;
 
 public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTestBase(factory)
 {
-    private static readonly Guid User = Guid.Parse("8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10");
 
     [Fact]
     public async Task Create_Returns201_WithLocationThatResolvesToTheSnippet()
@@ -50,7 +49,7 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     public async Task Create_WithMissingTitle_Returns400ValidationProblemDetails()
     {
         var response = await Client.PostAsJsonAsync("/api/snippets",
-            new { content = "code", language = "C#", createdByUserId = User });
+            new { content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
@@ -72,5 +71,5 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     }
 
     private static object ValidBody(string title = "Hello") =>
-        new { title, content = "Console.WriteLine();", language = "C#", createdByUserId = User };
+        new { title, content = "Console.WriteLine();", language = "C#" };
 }

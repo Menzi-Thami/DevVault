@@ -7,11 +7,12 @@ namespace DevVault.Application.Snippets.Commands.CreateSnippet;
 
 /// <summary>
 /// Create-snippet use case. Single responsibility (SRP). Depends only on the
-/// repository port and an injected <see cref="TimeProvider"/> — no ambient
-/// statics, no EF Core — so it is trivially unit-testable.
+/// repository port, the injected <see cref="TimeProvider"/> and <see cref="ICurrentUser"/> —
+/// no ambient statics, no EF Core — so it is trivially unit-testable.
 /// </summary>
 public sealed class CreateSnippetHandler(
     ISnippetRepository repository,
+    ICurrentUser currentUser,
     TimeProvider timeProvider,
     ILogger<CreateSnippetHandler> logger)
 {
@@ -22,7 +23,7 @@ public sealed class CreateSnippetHandler(
             command.Title,
             command.Content,
             command.Language,
-            command.CreatedByUserId,
+            currentUser.UserId,
             timeProvider.GetUtcNow());
 
         await repository.AddAsync(snippet, cancellationToken);

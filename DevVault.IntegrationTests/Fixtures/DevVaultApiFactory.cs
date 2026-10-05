@@ -1,4 +1,5 @@
 using DevVault.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -28,7 +29,7 @@ public sealed class DevVaultApiFactory : WebApplicationFactory<Program>, IAsyncL
 
     private Respawner? _respawner;
 
-    public string ConnectionString { get; } =
+    public static string ConnectionString { get; } =
         Environment.GetEnvironmentVariable(ConnectionStringVariable) is { Length: > 0 } fromEnv
             ? fromEnv
             : LocalDbConnectionString;
@@ -41,11 +42,18 @@ public sealed class DevVaultApiFactory : WebApplicationFactory<Program>, IAsyncL
         // Not "Development": that would load the developer's user-secrets into the test host.
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", ConnectionString);
+        // Must be present to pass startup validation; never contacted, because the test
+        // scheme below replaces JWT bearer as the default.
+        builder.UseSetting("Authentication:Jwt:Authority", TestSettings.JwtAuthority);
+        builder.UseSetting("Authentication:Jwt:Audience", TestSettings.JwtAudience);
 
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
+
+            services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
         });
     }
 

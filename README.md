@@ -7,13 +7,18 @@ in .NET 10 — the kind of skeleton worth copying into a real project rather tha
 
 ## What it does
 
-Stores code snippets — a title, a body, and a language — over a small REST API.
+Stores code snippets — a title, a body, and a language — over a small REST API. Every
+`/api/snippets` call needs a bearer token; each user sees only their own snippets.
 
 | Method | Route | Result |
 |---|---|---|
-| `POST` | `/api/snippets` | `201 Created` with the new snippet |
-| `GET` | `/api/snippets` | all snippets |
-| `GET` | `/api/snippets/{id}` | one snippet, or `404` |
+| `POST` | `/api/snippets` | `201 Created` with the new snippet, owned by the caller |
+| `GET` | `/api/snippets` | the caller's snippets |
+| `GET` | `/api/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
+| `GET` | `/health/live`, `/health/ready` | anonymous health probes |
+
+No token gives `401`. The owner is always the token's user (`oid` claim, or a GUID `sub`) — the
+body has no owner field, and one sent anyway is ignored.
 
 ## Why it's laid out this way
 
@@ -46,20 +51,38 @@ service locator.
 ## Running it
 
 Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download) and SQL Server (LocalDB is fine).
-The connection string is not committed — supply `ConnectionStrings:DefaultConnection`:
+Nothing environment-specific is committed — supply the connection string and the token issuer
+(any OIDC issuer works; for Entra ID register an app that exposes an API scope and use its
+tenant and app ID URI):
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
   "Server=(localdb)\MSSQLLocalDB;Database=DevVault;Trusted_Connection=True;TrustServerCertificate=True" \
   --project DevVault.API
+dotnet user-secrets set "Authentication:Jwt:Authority" \
+  "https://login.microsoftonline.com/<tenant-id>/v2.0" --project DevVault.API
+dotnet user-secrets set "Authentication:Jwt:Audience" "api://<api-client-id>" --project DevVault.API
 
 dotnet ef database update --project DevVault.Infrastructure --startup-project DevVault.API
 dotnet run --project DevVault.API
 ```
 
-The connection string is validated at startup, so without it the API refuses to boot rather than
+Both sections are validated at startup, so a missing value stops the API at boot rather than
 failing on the first request. `/health/live` (process up, no dependency checks) and
-`/health/ready` (includes a database check) are there for probes.
+`/health/ready` (includes a database check) are anonymous, for probes.
+
+### Calling it
+
+Get an access token for the API's scope from the issuer (for Entra, any client allowed to call
+`api://<api-client-id>/<scope>`; with the Azure CLI as a pre-authorised client:
+`az account get-access-token --scope api://<api-client-id>/<scope> --query accessToken -o tsv`),
+then send it as a bearer token:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/snippets
+```
+
+`DevVault.API/DevVault.API.http` has the same calls; paste the token into its `@token` variable.
 
 ## Tests
 

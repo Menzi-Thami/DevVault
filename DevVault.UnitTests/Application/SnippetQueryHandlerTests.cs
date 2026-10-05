@@ -12,44 +12,62 @@ namespace DevVault.UnitTests.Application;
 
 public class SnippetQueryHandlerTests
 {
-    private readonly ISnippetRepository _repository = Substitute.For<ISnippetRepository>();
+    private static readonly Guid CurrentUserId = Guid.Parse("3f0b6c1e-7a2d-4e59-8c34-91d2b7a6e015");
     private static readonly DateTimeOffset At = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private readonly ISnippetRepository _repository = Substitute.For<ISnippetRepository>();
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
+
+    public SnippetQueryHandlerTests() => _currentUser.UserId.Returns(CurrentUserId);
 
     [Fact]
     public async Task GetById_WhenFound_ReturnsDto()
     {
-        var snippet = Snippet.Create("t", "c", "C#", Guid.NewGuid(), At);
-        _repository.GetByIdAsync(snippet.Id, Arg.Any<CancellationToken>()).Returns(snippet);
-        var handler = new GetSnippetByIdHandler(_repository, NullLogger<GetSnippetByIdHandler>.Instance);
+        var snippet = Snippet.Create("t", "c", "C#", CurrentUserId, At);
+        _repository.GetByIdAsync(snippet.Id, CurrentUserId, Arg.Any<CancellationToken>()).Returns(snippet);
 
-        var dto = await handler.HandleAsync(snippet.Id);
+        var dto = await CreateGetHandler().HandleAsync(snippet.Id);
 
         dto.Id.ShouldBe(snippet.Id);
     }
 
     [Fact]
-    public async Task GetById_WhenMissing_ThrowsNotFound()
+    public async Task GetById_WhenMissingForThisUser_ThrowsNotFound()
     {
-        _repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Snippet?)null);
-        var handler = new GetSnippetByIdHandler(_repository, NullLogger<GetSnippetByIdHandler>.Instance);
+        _repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((Snippet?)null);
 
-        await Should.ThrowAsync<NotFoundException>(() => handler.HandleAsync(Guid.NewGuid()));
+        await Should.ThrowAsync<NotFoundException>(() => CreateGetHandler().HandleAsync(Guid.NewGuid()));
     }
 
     [Fact]
-    public async Task List_MapsAllToDtos()
+    public async Task GetById_LooksUpOnlyTheCurrentUsersSnippets()
+    {
+        var id = Guid.NewGuid();
+        _repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((Snippet?)null);
+
+        await Should.ThrowAsync<NotFoundException>(() => CreateGetHandler().HandleAsync(id));
+
+        await _repository.Received(1).GetByIdAsync(id, CurrentUserId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_MapsTheCurrentUsersSnippetsToDtos()
     {
         var snippets = new[]
         {
-            Snippet.Create("a", "c", "C#", Guid.NewGuid(), At),
-            Snippet.Create("b", "c", "JS", Guid.NewGuid(), At)
+            Snippet.Create("a", "c", "C#", CurrentUserId, At),
+            Snippet.Create("b", "c", "JS", CurrentUserId, At)
         };
-        _repository.ListAsync(Arg.Any<CancellationToken>()).Returns(snippets);
-        var handler = new ListSnippetsHandler(_repository, NullLogger<ListSnippetsHandler>.Instance);
+        _repository.ListAsync(CurrentUserId, Arg.Any<CancellationToken>()).Returns(snippets);
+        var handler = new ListSnippetsHandler(_repository, _currentUser, NullLogger<ListSnippetsHandler>.Instance);
 
         var result = await handler.HandleAsync();
 
-        result.Count.ShouldBe(2);
         result.Select(r => r.Title).ShouldBe(["a", "b"]);
     }
+
+    private GetSnippetByIdHandler CreateGetHandler() =>
+        new(_repository, _currentUser, NullLogger<GetSnippetByIdHandler>.Instance);
 }

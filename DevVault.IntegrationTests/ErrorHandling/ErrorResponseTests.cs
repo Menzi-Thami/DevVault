@@ -18,7 +18,6 @@ namespace DevVault.IntegrationTests.ErrorHandling;
 /// <summary>Every error is RFC 9457 ProblemDetails with a traceId; ours also carry a stable code.</summary>
 public sealed class ErrorResponseTests(DevVaultApiFactory factory) : IntegrationTestBase(factory)
 {
-    private static readonly Guid User = Guid.Parse("8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10");
 
     [Fact]
     public async Task UnknownId_Returns404ProblemDetails_WithCodeAndTraceId()
@@ -37,7 +36,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     public async Task DomainRuleViolation_Returns400ProblemDetails_WithCodeAndTraceId()
     {
         var response = await Client.PostAsJsonAsync("/api/snippets",
-            new { title = "   ", content = "code", language = "C#", createdByUserId = User });
+            new { title = "   ", content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var problem = await ReadProblem(response);
@@ -50,7 +49,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     public async Task ModelBindingFailure_Returns400ValidationProblemDetails_WithTraceId()
     {
         var response = await Client.PostAsJsonAsync("/api/snippets",
-            new { content = "code", language = "C#", createdByUserId = User });
+            new { content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var problem = await ReadProblem(response);
@@ -63,7 +62,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     {
         var logs = new CapturingLoggerProvider();
         var repository = Substitute.For<ISnippetRepository>();
-        repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+        repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException<Snippet?>(new ArgumentNullException("secretInternalParameter")));
 
         await using var faulty = Factory.WithWebHostBuilder(builder =>
@@ -71,7 +70,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
             builder.ConfigureLogging(logging => logging.AddProvider(logs));
             builder.ConfigureTestServices(services => services.AddScoped(_ => repository));
         });
-        using var client = faulty.CreateClient();
+        using var client = faulty.CreateClientFor(UserA);
 
         var response = await client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
 

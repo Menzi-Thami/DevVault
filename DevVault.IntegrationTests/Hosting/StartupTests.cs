@@ -13,31 +13,66 @@ public sealed class HealthCheckTests(DevVaultApiFactory factory) : IntegrationTe
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]   // includes the DbContext check against the real database
-    public async Task HealthEndpoint_Returns200(string path)
+    public async Task HealthEndpoint_Returns200_WithoutAToken(string path)
     {
-        var response = await Client.GetAsync(path);
+        var response = await AnonymousClient.GetAsync(path);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync()).ShouldBe("Healthy");
     }
 }
 
+/// <summary>
+/// Hosts built with the production configuration path (no test auth scheme), so these exercise
+/// the real startup validation and the real JWT bearer wiring.
+/// </summary>
 public sealed class StartupTests
 {
     [Fact]
     public void Startup_WithoutConnectionString_FailsAtBoot()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        using var factory = CreateFactory(connectionString: "");
+
+        ShouldFailValidation(factory, "ConnectionStrings:DefaultConnection");
+    }
+
+    [Fact]
+    public void Startup_WithoutJwtAuthority_FailsAtBoot()
+    {
+        using var factory = CreateFactory(authority: "");
+
+        ShouldFailValidation(factory, nameof(DevVault.API.Authentication.JwtAuthenticationOptions.Authority));
+    }
+
+    [Fact]
+    public async Task AnonymousRequest_IsChallengedForABearerToken()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/snippets");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Headers.WwwAuthenticate.ShouldContain(h => h.Scheme == "Bearer");
+    }
+
+    private static WebApplicationFactory<Program> CreateFactory(
+        string? connectionString = null, string? authority = null) =>
+        new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:DefaultConnection", "");
+            builder.UseSetting("ConnectionStrings:DefaultConnection", connectionString ?? DevVaultApiFactory.ConnectionString);
+            builder.UseSetting("Authentication:Jwt:Authority", authority ?? TestSettings.JwtAuthority);
+            builder.UseSetting("Authentication:Jwt:Audience", TestSettings.JwtAudience);
         });
 
+    private static void ShouldFailValidation(WebApplicationFactory<Program> factory, string expectedInMessage)
+    {
         var thrown = Should.Throw<Exception>(() => factory.CreateClient());
 
-        var validation = Flatten(thrown).OfType<OptionsValidationException>().FirstOrDefault();
-        validation.ShouldNotBeNull($"expected an OptionsValidationException, got {thrown}");
-        validation.Message.ShouldContain("ConnectionStrings:DefaultConnection");
+        Flatten(thrown).OfType<OptionsValidationException>()
+            .ShouldContain(e => e.Message.Contains(expectedInMessage, StringComparison.Ordinal),
+                $"expected an OptionsValidationException mentioning {expectedInMessage}, got {thrown}");
     }
 
     private static IEnumerable<Exception> Flatten(Exception exception)

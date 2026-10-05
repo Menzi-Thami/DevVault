@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DevVault.API.Authentication;
 using DevVault.API.ErrorHandling;
 using DevVault.Application;
 using DevVault.Infrastructure;
@@ -25,6 +26,9 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddExceptionHandler<KnownExceptionHandler>();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
+// Bearer tokens from the issuer in Authentication:Jwt; everything requires a signed-in user.
+builder.Services.AddJwtAuthentication();
+
 // Each layer owns its own registration (composition root).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
@@ -47,14 +51,17 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Liveness has no dependency checks, so a database blip doesn't get every instance restarted.
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+// Probes carry no token, so both opt out of the authenticated fallback policy.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+    .AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains(HealthCheckTags.Ready)
-});
+}).AllowAnonymous();
 app.MapControllers();
 
 app.Run();
