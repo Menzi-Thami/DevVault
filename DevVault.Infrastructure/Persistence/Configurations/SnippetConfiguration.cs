@@ -29,5 +29,10 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
 
         builder.Property(s => s.CreatedByUserId)
             .IsRequired();
+
+        // Serves the list query exactly: owner filter, then the keyset order.
+        builder.HasIndex(s => new { s.CreatedByUserId, s.CreatedAt, s.Id })
+            .IsDescending(false, true, true)
+            .HasDatabaseName("IX_Snippets_CreatedByUserId_CreatedAt_Id");
     }
 }

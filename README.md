@@ -13,11 +13,14 @@ Stores code snippets — a title, a body, and a language — over a small REST A
 | Method | Route | Result |
 |---|---|---|
 | `POST` | `/api/snippets` | `201 Created` with the new snippet, owned by the caller |
-| `GET` | `/api/snippets` | the caller's snippets |
+| `GET` | `/api/snippets?pageSize=&cursor=` | a page of the caller's snippets, newest first: `{ items, nextCursor }` |
 | `GET` | `/api/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
 | `GET` | `/health/live`, `/health/ready` | anonymous health probes |
 
-No token gives `401`. The owner is always the token's user (`oid` claim, or a GUID `sub`) — the
+The list is keyset-paginated: `pageSize` defaults to 20 and is capped at 100 by the server, and
+list items are summaries (`id`, `title`, `language`, `createdAt`) without the body — fetch
+`/api/snippets/{id}` for that. Pass `nextCursor` back as `cursor` for the next page; it is `null`
+on the last one. No token gives `401`. The owner is always the token's user (`oid` claim, or a GUID `sub`) — the
 body has no owner field, and one sent anyway is ignored.
 
 ## Why it's laid out this way
@@ -41,7 +44,7 @@ DevVault.API  ──►  DevVault.Application  ──►  DevVault.Domain
   and `DomainException` into `400`; `UnhandledExceptionHandler` logs anything else and returns a
   generic `500`. Every error — including ASP.NET's own model-binding `400`s — is an RFC 9457
   `application/problem+json` body with a `traceId`, and ours also carry a stable `code`
-  (`not_found`, `domain_rule_violated`, `unexpected_error`). No handler catches an exception
+  (`not_found`, `domain_rule_violated`, `validation_failed`, `unexpected_error`). No handler catches an exception
   just to return `null`.
 
 Two conventions the tests depend on: nothing reads the clock statically (`TimeProvider` is

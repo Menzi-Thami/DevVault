@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using DevVault.Application.Common.Paging;
 using DevVault.Application.Snippets.Dtos;
 using DevVault.IntegrationTests.Fixtures;
 using Shouldly;
@@ -64,10 +65,10 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
         Factory.Time.Advance(TimeSpan.FromMinutes(1));
         await Client.PostAsJsonAsync("/api/snippets", ValidBody(title: "newer"));
 
-        var list = await Client.GetFromJsonAsync<List<SnippetDto>>("/api/snippets");
+        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets");
 
-        list.ShouldNotBeNull();
-        list.Select(s => s.Title).ShouldBe(["newer", "older"]);
+        page.ShouldNotBeNull();
+        page.Items.Select(s => s.Title).ShouldBe(["newer", "older"]);
     }
 
     private static object ValidBody(string title = "Hello") =>

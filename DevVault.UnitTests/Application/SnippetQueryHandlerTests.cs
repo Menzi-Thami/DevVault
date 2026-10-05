@@ -52,22 +52,6 @@ public class SnippetQueryHandlerTests
         await _repository.Received(1).GetByIdAsync(id, CurrentUserId, Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task List_MapsTheCurrentUsersSnippetsToDtos()
-    {
-        var snippets = new[]
-        {
-            Snippet.Create("a", "c", "C#", CurrentUserId, At),
-            Snippet.Create("b", "c", "JS", CurrentUserId, At)
-        };
-        _repository.ListAsync(CurrentUserId, Arg.Any<CancellationToken>()).Returns(snippets);
-        var handler = new ListSnippetsHandler(_repository, _currentUser, NullLogger<ListSnippetsHandler>.Instance);
-
-        var result = await handler.HandleAsync();
-
-        result.Select(r => r.Title).ShouldBe(["a", "b"]);
-    }
-
     private GetSnippetByIdHandler CreateGetHandler() =>
         new(_repository, _currentUser, NullLogger<GetSnippetByIdHandler>.Instance);
 }

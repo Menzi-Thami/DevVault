@@ -1,4 +1,5 @@
 using DevVault.API.Contracts;
+using DevVault.Application.Common.Paging;
 using DevVault.Application.Snippets.Commands.CreateSnippet;
 using DevVault.Application.Snippets.Dtos;
 using DevVault.Application.Snippets.Queries.GetSnippetById;
@@ -27,11 +28,14 @@ public sealed class SnippetsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<SnippetDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<SnippetDto>>> List(
+    [ProducesResponseType(typeof(CursorPage<SnippetSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CursorPage<SnippetSummaryDto>>> List(
+        [FromQuery] int? pageSize,
+        [FromQuery] string? cursor,
         [FromServices] ListSnippetsHandler handler,
         CancellationToken cancellationToken) =>
-        Ok(await handler.HandleAsync(cancellationToken));
+        Ok(await handler.HandleAsync(new ListSnippetsQuery(pageSize, cursor), cancellationToken));
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(SnippetDto), StatusCodes.Status200OK)]

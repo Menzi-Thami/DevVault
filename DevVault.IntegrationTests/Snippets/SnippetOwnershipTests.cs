@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using DevVault.Application.Common.Paging;
 using DevVault.Application.Snippets.Dtos;
 using DevVault.IntegrationTests.Fixtures;
 using Shouldly;
@@ -53,10 +54,10 @@ public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : Integrat
         using var userB = Factory.CreateClientFor(UserB);
         await userB.PostAsJsonAsync("/api/snippets", new { title = "theirs", content = "c", language = "C#" });
 
-        var list = await Client.GetFromJsonAsync<List<SnippetDto>>("/api/snippets");
+        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets");
 
-        list.ShouldNotBeNull();
-        list.Select(s => s.Id).ShouldBe([mine.Id]);
+        page.ShouldNotBeNull();
+        page.Items.Select(s => s.Id).ShouldBe([mine.Id]);
     }
 
     private async Task<SnippetDto> CreateAsUserA()

@@ -19,6 +19,7 @@ public sealed class KnownExceptionHandler(IProblemDetailsService problemDetailsS
         {
             NotFoundException => (StatusCodes.Status404NotFound, "Resource not found", ErrorCodes.NotFound),
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request", ErrorCodes.DomainRuleViolated),
+            ValidationException => (StatusCodes.Status400BadRequest, "Invalid request", ErrorCodes.ValidationFailed),
             _ => (0, null, null)
         };
 

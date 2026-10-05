@@ -16,8 +16,8 @@ Accept: application/json
 
 ###
 
-# List your snippets
-GET {{DevVault.API_HostAddress}}/api/snippets
+# List your snippets: { items, nextCursor }. Send nextCursor back as ?cursor= for the next page.
+GET {{DevVault.API_HostAddress}}/api/snippets?pageSize=20
 Authorization: Bearer {{token}}
 Accept: application/json
 

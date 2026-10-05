@@ -8,5 +8,6 @@ public static class ErrorCodes
 {
     public const string NotFound = "not_found";
     public const string DomainRuleViolated = "domain_rule_violated";
+    public const string ValidationFailed = "validation_failed";
     public const string Unexpected = "unexpected_error";
 }
