@@ -9,10 +9,12 @@ using Xunit;
 namespace DevVault.IntegrationTests.ErrorHandling;
 
 /// <summary>The handlers in isolation, for cases that are hard to provoke over HTTP.</summary>
-public sealed class ExceptionHandlerTests
+public sealed class ExceptionHandlerTests : IDisposable
 {
     private readonly IProblemDetailsService _problemDetails = Substitute.For<IProblemDetailsService>();
     private readonly CapturingLoggerProvider _logs = new();
+
+    public void Dispose() => _logs.Dispose();
 
     [Fact]
     public async Task Unhandled_ClientAbortedRequest_Is499_NotLoggedAsError_AndWritesNoBody()

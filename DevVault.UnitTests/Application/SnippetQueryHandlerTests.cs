@@ -50,6 +50,6 @@ public class SnippetQueryHandlerTests
         var result = await handler.HandleAsync();
 
         result.Count.ShouldBe(2);
-        result.Select(r => r.Title).ShouldBe(new[] { "a", "b" });
+        result.Select(r => r.Title).ShouldBe(["a", "b"]);
     }
 }

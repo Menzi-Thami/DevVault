@@ -3,13 +3,13 @@ using Xunit;
 namespace DevVault.IntegrationTests.Fixtures;
 
 [CollectionDefinition(Name)]
-public sealed class ApiCollection : ICollectionFixture<DevVaultApiFactory>
+public sealed class SharedApiFixture : ICollectionFixture<DevVaultApiFactory>
 {
     public const string Name = "api";
 }
 
 /// <summary>Every test starts from empty tables.</summary>
-[Collection(ApiCollection.Name)]
+[Collection(SharedApiFixture.Name)]
 public abstract class IntegrationTestBase(DevVaultApiFactory factory) : IAsyncLifetime
 {
     protected DevVaultApiFactory Factory { get; } = factory;

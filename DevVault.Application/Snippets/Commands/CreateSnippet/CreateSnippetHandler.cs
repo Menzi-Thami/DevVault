@@ -30,9 +30,12 @@ public sealed class CreateSnippetHandler(
 
         // Notable business event. Log identifiers/metadata only — never the
         // snippet title or content body.
-        logger.LogInformation(
-            "Created snippet {SnippetId} in {Language} for user {UserId}",
-            snippet.Id, snippet.Language.Value, snippet.CreatedByUserId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation(
+                "Created snippet {SnippetId} in {Language} for user {UserId}",
+                snippet.Id, snippet.Language.Value, snippet.CreatedByUserId);
+        }
 
         return SnippetDto.FromEntity(snippet);
     }

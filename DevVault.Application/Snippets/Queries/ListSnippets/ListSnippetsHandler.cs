@@ -15,7 +15,8 @@ public sealed class ListSnippetsHandler(
         var dtos = snippets.Select(SnippetDto.FromEntity).ToList();
 
         // Read-path detail — Debug so routine list calls don't add noise.
-        logger.LogDebug("Listed {Count} snippets", dtos.Count);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Listed {Count} snippets", dtos.Count);
 
         return dtos;
     }
