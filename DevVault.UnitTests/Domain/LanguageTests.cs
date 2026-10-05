@@ -21,6 +21,19 @@ public class LanguageTests
     public void From_WithBlank_Throws(string? value) =>
         Should.Throw<DomainException>(() => Language.From(value!));
 
+    [Theory]
+    [InlineData(Language.MaxLength, false)]
+    [InlineData(Language.MaxLength + 1, true)]
+    public void From_Length_IsBoundedAtMax(int length, bool throws)
+    {
+        var value = new string('x', length);
+
+        if (throws)
+            Should.Throw<DomainException>(() => Language.From(value));
+        else
+            Language.From(value).Value.Length.ShouldBe(length);
+    }
+
     [Fact]
     public void Equality_IsByValue()
     {

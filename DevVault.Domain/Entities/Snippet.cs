@@ -10,6 +10,11 @@ namespace DevVault.Domain.Entities;
 /// </summary>
 public class Snippet
 {
+    // Invariants, not just column sizes: SnippetConfiguration reads these so the database and
+    // the domain cannot drift apart. Content is nvarchar(max), so its cap lives only here.
+    public const int TitleMaxLength = 200;
+    public const int ContentMaxLength = 100_000;
+
     public Guid Id { get; private set; }
     public string Title { get; private set; } = null!;
     public string Content { get; private set; } = null!;
@@ -35,8 +40,12 @@ public class Snippet
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new DomainException("Title cannot be empty");
+        if (title.Trim().Length > TitleMaxLength)
+            throw new DomainException($"Title cannot exceed {TitleMaxLength} characters");
         if (string.IsNullOrWhiteSpace(content))
             throw new DomainException("Content cannot be empty");
+        if (content.Length > ContentMaxLength)
+            throw new DomainException($"Content cannot exceed {ContentMaxLength} characters");
         if (createdByUserId == Guid.Empty)
             throw new DomainException("CreatedByUserId cannot be empty");
 

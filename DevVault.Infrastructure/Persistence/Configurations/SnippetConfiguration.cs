@@ -13,7 +13,7 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
 
         builder.Property(s => s.Title)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(Snippet.TitleMaxLength);
 
         builder.Property(s => s.Content)
             .IsRequired();
@@ -22,7 +22,7 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
         builder.Property(s => s.Language)
             .HasConversion(language => language.Value, value => Language.From(value))
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(Language.MaxLength);
 
         builder.Property(s => s.CreatedAt)
             .IsRequired();

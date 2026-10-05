@@ -42,6 +42,37 @@ public class SnippetTests
     public void Create_WithBlankLanguage_Throws(string language) =>
         Should.Throw<DomainException>(() => Snippet.Create("t", "c", language, User, CreatedAt));
 
+    [Theory]
+    [InlineData(Snippet.TitleMaxLength, false)]
+    [InlineData(Snippet.TitleMaxLength + 1, true)]
+    public void Create_TitleLength_IsBoundedAtMax(int length, bool throws)
+    {
+        var title = new string('t', length);
+
+        if (throws)
+            Should.Throw<DomainException>(() => Snippet.Create(title, "c", "C#", User, CreatedAt));
+        else
+            Snippet.Create(title, "c", "C#", User, CreatedAt).Title.Length.ShouldBe(length);
+    }
+
+    [Fact]
+    public void Create_TitleLength_IsMeasuredAfterTrimming() =>
+        Snippet.Create($"  {new string('t', Snippet.TitleMaxLength)}  ", "c", "C#", User, CreatedAt)
+            .Title.Length.ShouldBe(Snippet.TitleMaxLength);
+
+    [Theory]
+    [InlineData(Snippet.ContentMaxLength, false)]
+    [InlineData(Snippet.ContentMaxLength + 1, true)]
+    public void Create_ContentLength_IsBoundedAtMax(int length, bool throws)
+    {
+        var content = new string('c', length);
+
+        if (throws)
+            Should.Throw<DomainException>(() => Snippet.Create("t", content, "C#", User, CreatedAt));
+        else
+            Snippet.Create("t", content, "C#", User, CreatedAt).Content.Length.ShouldBe(length);
+    }
+
     [Fact]
     public void Create_WithEmptyUserId_Throws() =>
         Should.Throw<DomainException>(() => Snippet.Create("t", "c", "C#", Guid.Empty, CreatedAt));
