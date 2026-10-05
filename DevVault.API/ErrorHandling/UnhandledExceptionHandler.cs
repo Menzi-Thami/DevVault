@@ -1,3 +1,4 @@
+using DevVault.Application.Common.Logging;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,14 +23,14 @@ public sealed class UnhandledExceptionHandler(
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug("Request {Method} {Path} was aborted by the client",
-                    httpContext.Request.Method, httpContext.Request.Path);
+                    LogValue.Safe(httpContext.Request.Method), LogValue.Safe(httpContext.Request.Path.Value));
             }
             httpContext.Response.StatusCode = ClientClosedRequest;
             return true;
         }
 
         logger.LogError(exception, "Unhandled exception for {Method} {Path}",
-            httpContext.Request.Method, httpContext.Request.Path);
+            LogValue.Safe(httpContext.Request.Method), LogValue.Safe(httpContext.Request.Path.Value));
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext

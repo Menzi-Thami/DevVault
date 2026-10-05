@@ -1,4 +1,5 @@
 using DevVault.Application.Common.Interfaces;
+using DevVault.Application.Common.Logging;
 using DevVault.Application.Snippets.Dtos;
 using DevVault.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -35,7 +36,7 @@ public sealed class CreateSnippetHandler(
         {
             logger.LogInformation(
                 "Created snippet {SnippetId} in {Language} for user {UserId}",
-                snippet.Id, snippet.Language.Value, snippet.CreatedByUserId);
+                snippet.Id, LogValue.Safe(snippet.Language.Value), snippet.CreatedByUserId);
         }
 
         return SnippetDto.FromEntity(snippet);

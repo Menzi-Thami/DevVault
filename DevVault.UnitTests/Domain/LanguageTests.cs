@@ -34,6 +34,13 @@ public class LanguageTests
             Language.From(value).Value.Length.ShouldBe(length);
     }
 
+    [Theory]
+    [InlineData("C#\nINFO forged entry")]
+    [InlineData("Py\rthon")]
+    [InlineData("Go\u0000")]
+    public void From_WithControlCharacters_Throws(string value) =>
+        Should.Throw<DomainException>(() => Language.From(value));
+
     [Fact]
     public void Equality_IsByValue()
     {

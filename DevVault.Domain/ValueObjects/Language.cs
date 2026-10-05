@@ -24,6 +24,9 @@ public sealed record Language
         if (trimmed.Length > MaxLength)
             throw new DomainException($"Language cannot exceed {MaxLength} characters");
 
+        if (trimmed.Any(char.IsControl))
+            throw new DomainException("Language cannot contain control characters");
+
         return new Language(trimmed);
     }
 
