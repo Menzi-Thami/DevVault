@@ -12,11 +12,16 @@ namespace DevVault.Infrastructure.Persistence;
 /// </summary>
 public sealed class SnippetRepository(AppDbContext context) : ISnippetRepository
 {
-    public async Task AddAsync(Snippet snippet, CancellationToken cancellationToken = default) =>
-        await context.Snippets.AddAsync(snippet, cancellationToken);
+    // Snippet.Create assigns the id, so no async value generator is involved: plain Add.
+    public Task AddAsync(Snippet snippet, CancellationToken cancellationToken = default)
+    {
+        context.Snippets.Add(snippet);
+        return Task.CompletedTask;
+    }
 
+    // Only the read-side query handler calls this, so nothing needs tracking.
     public async Task<Snippet?> GetByIdAsync(Guid id, Guid ownerId, CancellationToken cancellationToken = default) =>
-        await context.Snippets.FirstOrDefaultAsync(
+        await context.Snippets.AsNoTracking().FirstOrDefaultAsync(
             s => s.Id == id && s.CreatedByUserId == ownerId, cancellationToken);
 
     public async Task<IReadOnlyList<SnippetSummaryDto>> ListAsync(
