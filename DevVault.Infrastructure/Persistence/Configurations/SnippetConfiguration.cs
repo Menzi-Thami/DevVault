@@ -13,7 +13,7 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
 
         builder.Property(s => s.Title)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(Snippet.TitleMaxLength);
 
         builder.Property(s => s.Content)
             .IsRequired();
@@ -22,12 +22,17 @@ public class SnippetConfiguration : IEntityTypeConfiguration<Snippet>
         builder.Property(s => s.Language)
             .HasConversion(language => language.Value, value => Language.From(value))
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(Language.MaxLength);
 
         builder.Property(s => s.CreatedAt)
             .IsRequired();
 
         builder.Property(s => s.CreatedByUserId)
             .IsRequired();
+
+        // Serves the list query exactly: owner filter, then the keyset order.
+        builder.HasIndex(s => new { s.CreatedByUserId, s.CreatedAt, s.Id })
+            .IsDescending(false, true, true)
+            .HasDatabaseName("IX_Snippets_CreatedByUserId_CreatedAt_Id");
     }
 }

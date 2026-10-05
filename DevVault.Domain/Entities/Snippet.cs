@@ -10,11 +10,16 @@ namespace DevVault.Domain.Entities;
 /// </summary>
 public class Snippet
 {
+    // Invariants, not just column sizes: SnippetConfiguration reads these so the database and
+    // the domain cannot drift apart. Content is nvarchar(max), so its cap lives only here.
+    public const int TitleMaxLength = 200;
+    public const int ContentMaxLength = 100_000;
+
     public Guid Id { get; private set; }
     public string Title { get; private set; } = null!;
     public string Content { get; private set; } = null!;
     public Language Language { get; private set; } = null!;
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
     // Required by EF Core for materialisation. Not for application use.
@@ -24,6 +29,7 @@ public class Snippet
     /// Creates a valid snippet. The timestamp is passed in (rather than read
     /// from <c>DateTime.UtcNow</c>) so creation is deterministic and testable;
     /// the caller supplies it from an injected <see cref="TimeProvider"/>.
+    /// It is stored as UTC so a persisted value is never ambiguous about its zone.
     /// Invariant violations throw <see cref="DomainException"/>.
     /// </summary>
     public static Snippet Create(
@@ -31,12 +37,16 @@ public class Snippet
         string content,
         string language,
         Guid createdByUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new DomainException("Title cannot be empty");
+        if (title.Trim().Length > TitleMaxLength)
+            throw new DomainException($"Title cannot exceed {TitleMaxLength} characters");
         if (string.IsNullOrWhiteSpace(content))
             throw new DomainException("Content cannot be empty");
+        if (content.Length > ContentMaxLength)
+            throw new DomainException($"Content cannot exceed {ContentMaxLength} characters");
         if (createdByUserId == Guid.Empty)
             throw new DomainException("CreatedByUserId cannot be empty");
 
@@ -47,7 +57,7 @@ public class Snippet
             Content = content,
             Language = Language.From(language),   // value object self-validates
             CreatedByUserId = createdByUserId,
-            CreatedAt = createdAt
+            CreatedAt = createdAt.ToUniversalTime()
         };
     }
 }

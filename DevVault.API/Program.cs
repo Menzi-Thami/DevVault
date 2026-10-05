@@ -1,21 +1,42 @@
-using DevVault.API.Middleware;
+using System.Diagnostics;
+using DevVault.API.Authentication;
+using DevVault.API.ErrorHandling;
 using DevVault.Application;
 using DevVault.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fail at startup, in every environment (the defaults are Development-only), on missing
+// registrations and scoped-into-singleton captures.
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// One error shape (RFC 9457 ProblemDetails) for typed exceptions and model-binding failures alike.
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+    context.ProblemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+// Run in registration order; the first to return true wins.
+builder.Services.AddExceptionHandler<KnownExceptionHandler>();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
+
+// Bearer tokens from the issuer in Authentication:Jwt; everything requires a signed-in user.
+builder.Services.AddJwtAuthentication();
+
 // Each layer owns its own registration (composition root).
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure();
 
 var app = builder.Build();
 
-// Typed exceptions -> HTTP status codes, before anything else in the pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
+// Outermost, so every exception below it becomes ProblemDetails.
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -30,7 +51,17 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Liveness has no dependency checks, so a database blip doesn't get every instance restarted.
+// Probes carry no token, so both opt out of the authenticated fallback policy.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+    .AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(HealthCheckTags.Ready)
+}).AllowAnonymous();
 app.MapControllers();
 
 app.Run();

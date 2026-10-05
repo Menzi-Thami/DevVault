@@ -9,6 +9,8 @@ namespace DevVault.Domain.ValueObjects;
 /// </summary>
 public sealed record Language
 {
+    public const int MaxLength = 50;
+
     public string Value { get; }
 
     private Language(string value) => Value = value;
@@ -18,7 +20,14 @@ public sealed record Language
         if (string.IsNullOrWhiteSpace(value))
             throw new DomainException("Language cannot be empty");
 
-        return new Language(value.Trim());
+        var trimmed = value.Trim();
+        if (trimmed.Length > MaxLength)
+            throw new DomainException($"Language cannot exceed {MaxLength} characters");
+
+        if (trimmed.Any(char.IsControl))
+            throw new DomainException("Language cannot contain control characters");
+
+        return new Language(trimmed);
     }
 
     public override string ToString() => Value;

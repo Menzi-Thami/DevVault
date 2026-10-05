@@ -7,7 +7,7 @@ public sealed record SnippetDto(
     string Title,
     string Content,
     string Language,
-    DateTime CreatedAt,
+    DateTimeOffset CreatedAt,
     Guid CreatedByUserId)
 {
     public static SnippetDto FromEntity(Snippet s) =>

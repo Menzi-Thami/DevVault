@@ -1,6 +1,42 @@
 @DevVault.API_HostAddress = http://localhost:5109
+# An access token for the issuer/audience in Authentication:Jwt (see README "Calling it").
+@token = paste-an-access-token-here
 
-GET {{DevVault.API_HostAddress}}/weatherforecast/
+# Create a snippet -> 201 Created with a Location header. The owner is the token's user.
+POST {{DevVault.API_HostAddress}}/api/snippets
+Authorization: Bearer {{token}}
+Content-Type: application/json
 Accept: application/json
+
+{
+  "title": "Hello world",
+  "content": "Console.WriteLine(\"Hello\");",
+  "language": "C#"
+}
+
+###
+
+# List your snippets: { items, nextCursor }. Send nextCursor back as ?cursor= for the next page.
+GET {{DevVault.API_HostAddress}}/api/snippets?pageSize=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+# Unknown (or someone else's) id -> 404 application/problem+json
+GET {{DevVault.API_HostAddress}}/api/snippets/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+# No token -> 401
+GET {{DevVault.API_HostAddress}}/api/snippets
+Accept: application/json
+
+###
+
+# Health probes are anonymous
+GET {{DevVault.API_HostAddress}}/health/ready
 
 ###
