@@ -1,6 +1,27 @@
 @DevVault.API_HostAddress = http://localhost:5109
 
-GET {{DevVault.API_HostAddress}}/weatherforecast/
+# Create a snippet -> 201 Created with a Location header
+POST {{DevVault.API_HostAddress}}/api/snippets
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Hello world",
+  "content": "Console.WriteLine(\"Hello\");",
+  "language": "C#",
+  "createdByUserId": "8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10"
+}
+
+###
+
+# List snippets
+GET {{DevVault.API_HostAddress}}/api/snippets
+Accept: application/json
+
+###
+
+# Unknown id -> 404 application/problem+json
+GET {{DevVault.API_HostAddress}}/api/snippets/00000000-0000-0000-0000-000000000001
 Accept: application/json
 
 ###

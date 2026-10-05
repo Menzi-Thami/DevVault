@@ -31,9 +31,13 @@ DevVault.API  ──►  DevVault.Application  ──►  DevVault.Domain
   `GetSnippetByIdHandler`, `ListSnippetsHandler`) plus the `ISnippetRepository` port it
   defines for itself. It never references Infrastructure.
 - **Infrastructure** — EF Core `AppDbContext`, the repository adapter, migrations.
-- **API** — thin controllers that resolve a handler and return; `GlobalExceptionMiddleware`
-  turns `NotFoundException` into `404` and `DomainException` into `400`, so no handler
-  catches an exception just to return `null`.
+- **API** — thin controllers that resolve a handler and return. Errors are mapped in one place
+  by chained `IExceptionHandler`s: `KnownExceptionHandler` turns `NotFoundException` into `404`
+  and `DomainException` into `400`; `UnhandledExceptionHandler` logs anything else and returns a
+  generic `500`. Every error — including ASP.NET's own model-binding `400`s — is an RFC 9457
+  `application/problem+json` body with a `traceId`, and ours also carry a stable `code`
+  (`not_found`, `domain_rule_violated`, `unexpected_error`). No handler catches an exception
+  just to return `null`.
 
 Two conventions the tests depend on: nothing reads the clock statically (`TimeProvider` is
 injected, so `FakeTimeProvider` can pin an instant), and nothing is resolved from a static

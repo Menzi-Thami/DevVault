@@ -17,8 +17,8 @@ public sealed class GetSnippetByIdHandler(
         var snippet = await repository.GetByIdAsync(id, cancellationToken);
         if (snippet is null)
         {
-            // Recoverable/expected miss — Warning, not Error. The middleware
-            // maps the resulting NotFoundException to a 404 without logging it.
+            // Recoverable/expected miss — Warning, not Error. The API's exception
+            // handler maps the resulting NotFoundException to a 404 without logging it.
             logger.LogWarning("Snippet {SnippetId} was not found", id);
             throw new NotFoundException(nameof(Snippet), id);
         }

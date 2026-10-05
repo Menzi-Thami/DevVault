@@ -1,4 +1,5 @@
-using DevVault.API.Middleware;
+using System.Diagnostics;
+using DevVault.API.ErrorHandling;
 using DevVault.Application;
 using DevVault.Infrastructure;
 
@@ -8,14 +9,21 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// One error shape (RFC 9457 ProblemDetails) for typed exceptions and model-binding failures alike.
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+    context.ProblemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+// Run in registration order; the first to return true wins.
+builder.Services.AddExceptionHandler<KnownExceptionHandler>();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
+
 // Each layer owns its own registration (composition root).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Typed exceptions -> HTTP status codes, before anything else in the pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
+// Outermost, so every exception below it becomes ProblemDetails.
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
