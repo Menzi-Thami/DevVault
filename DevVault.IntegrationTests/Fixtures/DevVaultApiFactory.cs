@@ -1,3 +1,4 @@
+using DevVault.API.RateLimiting;
 using DevVault.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -51,6 +52,15 @@ public sealed class DevVaultApiFactory : WebApplicationFactory<Program>, IAsyncL
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
+
+            // Every test shares this host and mostly the same user, so the production limits would
+            // trip across unrelated tests. RateLimitingTests set small limits on their own host.
+            services.PostConfigure<RateLimitingOptions>(limits =>
+            {
+                limits.TokenLimit = 1_000_000;
+                limits.TokensPerPeriod = 1_000_000;
+                limits.CreatePermitLimit = 1_000_000;
+            });
 
             services.AddAuthentication(TestAuthHandler.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });

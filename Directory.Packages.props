@@ -13,10 +13,23 @@
 
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
 
+    <PackageVersion Include="Asp.Versioning.Mvc" Version="10.2.1" />
+    <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
+
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+
+    <!-- OpenTelemetry: the SDK, its exporters and the instrumentation libraries move together. -->
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.19.0" />
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
+
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
@@ -25,6 +38,7 @@
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.19.1" />
     <PackageVersion Include="Respawn" Version="7.0.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <!-- xunit 2.9.x + ArchUnitNET.xUnit is the proven pair; moving to xunit.v3 means switching the ArchUnitNET adapter too. -->

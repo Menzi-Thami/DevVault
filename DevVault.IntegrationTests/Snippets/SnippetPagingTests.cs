@@ -46,7 +46,7 @@ public sealed class SnippetPagingTests(DevVaultApiFactory factory) : Integration
     {
         await SeedAsync();
 
-        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets?pageSize=1000");
+        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/v1/snippets?pageSize=1000");
 
         page!.Items.Count.ShouldBe(ListSnippetsQuery.MaxPageSize);
         page.NextCursor.ShouldNotBeNull();
@@ -57,7 +57,7 @@ public sealed class SnippetPagingTests(DevVaultApiFactory factory) : Integration
     {
         await SeedAsync();
 
-        var json = await Client.GetFromJsonAsync<JsonElement>("/api/snippets?pageSize=1");
+        var json = await Client.GetFromJsonAsync<JsonElement>("/api/v1/snippets?pageSize=1");
 
         var item = json.GetProperty("items")[0];
         item.TryGetProperty("content", out _).ShouldBeFalse();
@@ -68,7 +68,7 @@ public sealed class SnippetPagingTests(DevVaultApiFactory factory) : Integration
     [Fact]
     public async Task AMalformedCursor_Returns400()
     {
-        var response = await Client.GetAsync("/api/snippets?cursor=definitely-not-a-cursor");
+        var response = await Client.GetAsync("/api/v1/snippets?cursor=definitely-not-a-cursor");
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -82,9 +82,9 @@ public sealed class SnippetPagingTests(DevVaultApiFactory factory) : Integration
         var logs = new CapturingLoggerProvider();
         await using var logged = Factory.WithWebHostBuilder(b => b.ConfigureLogging(l => l.AddProvider(logs)));
         using var client = logged.CreateClientFor(UserA);
-        var first = await client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets?pageSize=5");
+        var first = await client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/v1/snippets?pageSize=5");
 
-        await client.GetAsync($"/api/snippets?pageSize=5&cursor={first!.NextCursor}");
+        await client.GetAsync($"/api/v1/snippets?pageSize=5&cursor={first!.NextCursor}");
 
         var sql = logs.Entries
             .Where(e => e.Category == "Microsoft.EntityFrameworkCore.Database.Command")
@@ -120,7 +120,7 @@ public sealed class SnippetPagingTests(DevVaultApiFactory factory) : Integration
         string? cursor = null;
         do
         {
-            var url = $"/api/snippets?pageSize={pageSize}" + (cursor is null ? "" : $"&cursor={cursor}");
+            var url = $"/api/v1/snippets?pageSize={pageSize}" + (cursor is null ? "" : $"&cursor={cursor}");
             var page = await client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>(url);
             pages.Add(page!);
             cursor = page!.NextCursor;

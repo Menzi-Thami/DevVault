@@ -8,20 +8,27 @@ in .NET 10 — the kind of skeleton worth copying into a real project rather tha
 ## What it does
 
 Stores code snippets — a title, a body, and a language — over a small REST API. Every
-`/api/snippets` call needs a bearer token; each user sees only their own snippets.
+`/api/v1/snippets` call needs a bearer token; each user sees only their own snippets.
 
 | Method | Route | Result |
 |---|---|---|
-| `POST` | `/api/snippets` | `201 Created` with the new snippet, owned by the caller |
-| `GET` | `/api/snippets?pageSize=&cursor=` | a page of the caller's snippets, newest first: `{ items, nextCursor }` |
-| `GET` | `/api/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
+| `POST` | `/api/v1/snippets` | `201 Created` with the new snippet, owned by the caller |
+| `GET` | `/api/v1/snippets?pageSize=&cursor=` | a page of the caller's snippets, newest first: `{ items, nextCursor }` |
+| `GET` | `/api/v1/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
 | `GET` | `/health/live`, `/health/ready` | anonymous health probes |
 
 The list is keyset-paginated: `pageSize` defaults to 20 and is capped at 100 by the server, and
 list items are summaries (`id`, `title`, `language`, `createdAt`) without the body — fetch
-`/api/snippets/{id}` for that. Pass `nextCursor` back as `cursor` for the next page; it is `null`
+`/api/v1/snippets/{id}` for that. Pass `nextCursor` back as `cursor` for the next page; it is `null`
 on the last one. No token gives `401`. The owner is always the token's user (`oid` claim, or a GUID `sub`) — the
 body has no owner field, and one sent anyway is ignored.
+
+**Versioning.** The version is a URL segment (`/api/v1/...`, via `Asp.Versioning`); every
+response reports `api-supported-versions`, and an unknown version (`/api/v2/...`) is a `404`
+ProblemDetails. The unversioned `/api/snippets` routes were removed when versioning was added. A
+breaking contract change ships as `v2` beside `v1`, which is then marked deprecated (reported in
+`api-deprecated-versions`) before removal. Swagger UI (Development) has one document per version
+at `/swagger/v1/swagger.json`.
 
 ## Why it's laid out this way
 
@@ -82,10 +89,60 @@ Get an access token for the API's scope from the issuer (for Entra, any client a
 then send it as a bearer token:
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/snippets
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/v1/snippets
 ```
 
 `DevVault.API/DevVault.API.http` has the same calls; paste the token into its `@token` variable.
+
+## Rate limiting
+
+The built-in ASP.NET Core limiter, partitioned per caller: the signed-in user (`oid`/`sub`), or
+the client IP when there is no user. It runs after authentication so it knows who the caller is.
+
+| Applies to | Limiter | Default (`RateLimiting` section) |
+|---|---|---|
+| every endpoint | token bucket | burst of `TokenLimit` 100, refilled by `TokensPerPeriod` 50 every `ReplenishmentPeriodSeconds` 10 |
+| `POST /api/v1/snippets` (also) | fixed window | `CreatePermitLimit` 20 per `CreateWindowSeconds` 60 |
+| `/health/*` | none | probes are exempt |
+
+Over the limit gives `429` with a `Retry-After` header (seconds) and a ProblemDetails body with
+`code: rate_limited`. The values are validated at startup (a zero stops the app). Rejections show
+up in the `aspnetcore.rate_limiting.requests` metric. Limits are per instance, so they multiply
+when scaled out; behind a proxy, configure forwarded headers or every anonymous caller shares the
+proxy's IP. This is fair-use protection, not DDoS protection — that belongs at the edge.
+
+## Observability
+
+Traces, metrics and logs go through OpenTelemetry: incoming requests (ASP.NET Core), outgoing
+`HttpClient` calls, every SQL query EF Core sends (SqlClient, as a child span of the request that
+caused it), and runtime metrics (GC, thread pool, allocations). Health probes are not traced. The
+`service.name` is `Observability:ServiceName` (default `devvault-api`, validated at startup).
+
+Nothing is exported unless you say where — the standard variables decide, so a machine with
+neither set needs no collector and logs nothing about it:
+
+| Set | Sends to |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | any OTLP endpoint (the Aspire dashboard, an OpenTelemetry Collector, Jaeger, ...) |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Monitor / Application Insights |
+
+Both can be set at once. To see traces locally, run the standalone
+[Aspire dashboard](https://learn.microsoft.com/dotnet/aspire/fundamentals/dashboard/standalone)
+(a container, or `dotnet tool`) and point the API at its OTLP port:
+
+```bash
+docker run --rm -p 18888:18888 -p 4317:18889 mcr.microsoft.com/dotnet/aspire-dashboard:latest
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 dotnet run --project DevVault.API
+```
+
+then open http://localhost:18888 (the container prints a login token on startup).
+
+**Correlation.** Every response has an `X-Trace-Id` header: the request's W3C trace id
+(continuing the caller's `traceparent` if it sent one). The same value is the `traceId` in every
+ProblemDetails body, the `TraceId` on every log record written during the request, and the
+operation id in Application Insights — so a client that reports an error with its `X-Trace-Id`
+leads straight to the logs and spans. The console logger shows it when scopes are on
+(`Logging__Console__FormatterOptions__IncludeScopes=true`).
 
 ## Tests
 

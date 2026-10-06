@@ -1,20 +1,26 @@
+using Asp.Versioning;
 using DevVault.API.Contracts;
+using DevVault.API.RateLimiting;
 using DevVault.Application.Common.Paging;
 using DevVault.Application.Snippets.Commands.CreateSnippet;
 using DevVault.Application.Snippets.Dtos;
 using DevVault.Application.Snippets.Queries.GetSnippetById;
 using DevVault.Application.Snippets.Queries.ListSnippets;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DevVault.API.Controllers;
 
 // Authenticated by the fallback policy; every action is scoped to the caller's own snippets.
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion(1)]
+[Route("api/v{version:apiVersion}/snippets")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class SnippetsController : ControllerBase
 {
     [HttpPost]
+    [EnableRateLimiting(RateLimitingSetup.CreatePolicy)]
     [ProducesResponseType(typeof(SnippetDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SnippetDto>> Create(

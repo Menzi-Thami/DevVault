@@ -52,5 +52,5 @@ public sealed class SnippetLengthLimitTests(DevVaultApiFactory factory) : Integr
     }
 
     private Task<HttpResponseMessage> Post(string title = "Title", string content = "code", string language = "C#") =>
-        Client.PostAsJsonAsync("/api/snippets", new { title, content, language });
+        Client.PostAsJsonAsync("/api/v1/snippets", new { title, content, language });
 }

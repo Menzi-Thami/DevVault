@@ -45,12 +45,30 @@ public sealed class StartupTests
     }
 
     [Fact]
+    public void Startup_WithoutTelemetryServiceName_FailsAtBoot()
+    {
+        using var factory = CreateFactory().WithWebHostBuilder(builder =>
+            builder.UseSetting("Observability:ServiceName", ""));
+
+        ShouldFailValidation(factory, nameof(DevVault.API.Observability.ObservabilityOptions.ServiceName));
+    }
+
+    [Fact]
+    public void Startup_WithAZeroRateLimit_FailsAtBoot()
+    {
+        using var factory = CreateFactory().WithWebHostBuilder(builder =>
+            builder.UseSetting("RateLimiting:CreatePermitLimit", "0"));
+
+        ShouldFailValidation(factory, nameof(DevVault.API.RateLimiting.RateLimitingOptions.CreatePermitLimit));
+    }
+
+    [Fact]
     public async Task AnonymousRequest_IsChallengedForABearerToken()
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/snippets");
+        var response = await client.GetAsync("/api/v1/snippets");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Headers.WwwAuthenticate.ShouldContain(h => h.Scheme == "Bearer");

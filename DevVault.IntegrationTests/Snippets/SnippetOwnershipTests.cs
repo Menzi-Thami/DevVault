@@ -12,9 +12,9 @@ namespace DevVault.IntegrationTests.Snippets;
 public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : IntegrationTestBase(factory)
 {
     [Theory]
-    [InlineData("GET", "/api/snippets")]
-    [InlineData("GET", "/api/snippets/8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10")]
-    [InlineData("POST", "/api/snippets")]
+    [InlineData("GET", "/api/v1/snippets")]
+    [InlineData("GET", "/api/v1/snippets/8c7a3f52-1b9d-4c0e-9a51-3f2d6e4b7a10")]
+    [InlineData("POST", "/api/v1/snippets")]
     public async Task AnonymousRequest_Returns401(string method, string path)
     {
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
@@ -29,7 +29,7 @@ public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : Integrat
     [Fact]
     public async Task Create_StampsTheTokenUser_EvenWhenTheBodyNamesSomeoneElse()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets",
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets",
             new { title = "t", content = "c", language = "C#", createdByUserId = UserB });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -42,7 +42,7 @@ public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : Integrat
         var created = await CreateAsUserA();
         using var userB = Factory.CreateClientFor(UserB);
 
-        var response = await userB.GetAsync($"/api/snippets/{created.Id}");
+        var response = await userB.GetAsync($"/api/v1/snippets/{created.Id}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);   // not 403: existence isn't confirmed
     }
@@ -52,9 +52,9 @@ public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : Integrat
     {
         var mine = await CreateAsUserA();
         using var userB = Factory.CreateClientFor(UserB);
-        await userB.PostAsJsonAsync("/api/snippets", new { title = "theirs", content = "c", language = "C#" });
+        await userB.PostAsJsonAsync("/api/v1/snippets", new { title = "theirs", content = "c", language = "C#" });
 
-        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets");
+        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/v1/snippets");
 
         page.ShouldNotBeNull();
         page.Items.Select(s => s.Id).ShouldBe([mine.Id]);
@@ -62,7 +62,7 @@ public sealed class SnippetOwnershipTests(DevVaultApiFactory factory) : Integrat
 
     private async Task<SnippetDto> CreateAsUserA()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets", new { title = "mine", content = "c", language = "C#" });
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets", new { title = "mine", content = "c", language = "C#" });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<SnippetDto>())!;
     }
