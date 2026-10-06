@@ -113,6 +113,13 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 dotnet run --project DevVault.
 
 then open http://localhost:18888 (the container prints a login token on startup).
 
+**Correlation.** Every response has an `X-Trace-Id` header: the request's W3C trace id
+(continuing the caller's `traceparent` if it sent one). The same value is the `traceId` in every
+ProblemDetails body, the `TraceId` on every log record written during the request, and the
+operation id in Application Insights — so a client that reports an error with its `X-Trace-Id`
+leads straight to the logs and spans. The console logger shows it when scopes are on
+(`Logging__Console__FormatterOptions__IncludeScopes=true`).
+
 ## Tests
 
 ```bash

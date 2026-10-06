@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DevVault.API.Authentication;
 using DevVault.API.ErrorHandling;
 using DevVault.API.Observability;
@@ -16,13 +15,19 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
+// Every log record carries the request's trace/span ids as a scope (the host default today;
+// stated so the correlation contract doesn't hinge on a default).
+builder.Logging.Configure(options => options.ActivityTrackingOptions =
+    ActivityTrackingOptions.TraceId | ActivityTrackingOptions.SpanId | ActivityTrackingOptions.ParentId);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // One error shape (RFC 9457 ProblemDetails) for typed exceptions and model-binding failures alike.
+// traceId is the same value as the X-Trace-Id header and the logs' TraceId.
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
-    context.ProblemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+    context.ProblemDetails.Extensions["traceId"] = TraceCorrelation.CurrentTraceId(context.HttpContext));
 // Run in registration order; the first to return true wins.
 builder.Services.AddExceptionHandler<KnownExceptionHandler>();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
@@ -39,7 +44,10 @@ builder.Services.AddInfrastructure();
 
 var app = builder.Build();
 
-// Outermost, so every exception below it becomes ProblemDetails.
+// First, so every response (errors and 401s included) tells the client which trace to quote.
+app.UseTraceIdHeader();
+
+// Outermost handler, so every exception below it becomes ProblemDetails.
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
