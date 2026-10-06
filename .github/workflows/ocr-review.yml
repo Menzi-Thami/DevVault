@@ -3,10 +3,11 @@ name: AI code review
 # Inert until you opt in. The job is gated on the OCR_ENABLED variable, so this
 # file can sit here without failing every pull request before the key exists:
 #
-#   1. gh secret   set OCR_LLM_AUTH_TOKEN --repo <repo>   # your Gemini API key
+#   1. gh secret   set OCR_LLM_AUTH_TOKEN --repo <repo>   # a free Gemini API key (aistudio.google.com/apikey)
 #   2. gh variable set OCR_ENABLED --body "true" --repo <repo>
 #
-# OCR_LLM_URL / _MODEL / _USE_ANTHROPIC are already set as repository variables.
+# OCR_LLM_URL / _MODEL are repository variables (Gemini's OpenAI-compatible endpoint).
+# GitHub Models was retired on 2026-07-30, so a key-free option no longer exists.
 
 on:
   pull_request_target:
@@ -31,20 +32,20 @@ jobs:
       vars.OCR_ENABLED == 'true'
       && github.event.pull_request.user.type != 'Bot'
     steps:
+      # The review action checks the repository out itself and cleans the workspace,
+      # so rules fetched into the workspace vanish before it reads them. Keep them in
+      # RUNNER_TEMP instead.
       - name: Fetch shared .NET review rules
-        uses: actions/checkout@v7
-        with:
-          repository: Menzi-Thami/dotnet-review-rules
-          ref: main
-          path: .review-rules
+        run: git clone --depth 1 https://github.com/Menzi-Thami/dotnet-review-rules.git "$RUNNER_TEMP/review-rules"
 
       - uses: alibaba/open-code-review@main
         with:
           llm_url: ${{ vars.OCR_LLM_URL }}
           llm_auth_token: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
           llm_model: ${{ vars.OCR_LLM_MODEL }}
-          llm_use_anthropic: ${{ vars.OCR_LLM_USE_ANTHROPIC }}
-          rule: .review-rules/.opencodereview/rule.json
+          llm_protocol: 'openai'
+          stream_progress: 'true'
+          rule: ${{ runner.temp }}/review-rules/.opencodereview/rule.json
 
           # Gemini speaks the OpenAI-compatible protocol, so the action's
           # default extra_body (an Anthropic-shaped "thinking" key) does not
