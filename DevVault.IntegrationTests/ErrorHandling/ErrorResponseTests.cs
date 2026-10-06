@@ -22,7 +22,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     [Fact]
     public async Task UnknownId_Returns404ProblemDetails_WithCodeAndTraceId()
     {
-        var response = await Client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
+        var response = await Client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var problem = await ReadProblem(response);
@@ -35,7 +35,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     [Fact]
     public async Task DomainRuleViolation_Returns400ProblemDetails_WithCodeAndTraceId()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets",
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets",
             new { title = "   ", content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -48,7 +48,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
     [Fact]
     public async Task ModelBindingFailure_Returns400ValidationProblemDetails_WithTraceId()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets",
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets",
             new { content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -72,7 +72,7 @@ public sealed class ErrorResponseTests(DevVaultApiFactory factory) : Integration
         });
         using var client = faulty.CreateClientFor(UserA);
 
-        var response = await client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
         var body = await response.Content.ReadAsStringAsync();

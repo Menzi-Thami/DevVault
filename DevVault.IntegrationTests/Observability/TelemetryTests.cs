@@ -28,10 +28,10 @@ public sealed class TelemetryTests(DevVaultApiFactory factory) : IntegrationTest
             services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddInMemoryExporter(spans))));
         using var client = traced.CreateClientFor(UserA);
 
-        (await client.GetAsync("/api/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync("/api/v1/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var request = await spans.WaitForAsync(s => s.Kind == ActivityKind.Server);
-        request.GetTagItem("http.route").ShouldBe("api/Snippets");
+        request.GetTagItem("http.route").ShouldBe("api/v{version:apiVersion}/snippets");
         var query = await spans.WaitForAsync(s => s.Kind == ActivityKind.Client
             && s.TagObjects.Any(t => t.Key.StartsWith("db.", StringComparison.Ordinal)));
         query.TraceId.ShouldBe(request.TraceId);
@@ -46,7 +46,7 @@ public sealed class TelemetryTests(DevVaultApiFactory factory) : IntegrationTest
         using var client = traced.CreateClientFor(UserA);
 
         await client.GetAsync("/health/live");
-        await client.GetAsync("/api/snippets");
+        await client.GetAsync("/api/v1/snippets");
 
         await spans.WaitForAsync(s => s.Kind == ActivityKind.Server);
         spans.Snapshot().ShouldNotContain(s => s.Kind == ActivityKind.Server && s.DisplayName.Contains("health", StringComparison.OrdinalIgnoreCase));
@@ -60,7 +60,7 @@ public sealed class TelemetryTests(DevVaultApiFactory factory) : IntegrationTest
             services.ConfigureOpenTelemetryMeterProvider(meters => meters.AddInMemoryExporter(metrics))));
         using var client = metered.CreateClientFor(UserA);
 
-        await client.GetAsync("/api/snippets");
+        await client.GetAsync("/api/v1/snippets");
         metered.Services.GetRequiredService<MeterProvider>().ForceFlush().ShouldBeTrue();
 
         var names = metrics.Snapshot().Select(m => m.Name).ToList();
@@ -80,7 +80,7 @@ public sealed class TelemetryTests(DevVaultApiFactory factory) : IntegrationTest
         });
         using var client = exporting.CreateClientFor(UserA);
 
-        (await client.GetAsync("/api/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync("/api/v1/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await client.GetAsync("/health/ready")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 

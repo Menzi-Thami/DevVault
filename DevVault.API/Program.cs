@@ -1,7 +1,9 @@
+using Asp.Versioning.ApiExplorer;
 using DevVault.API.Authentication;
 using DevVault.API.ErrorHandling;
 using DevVault.API.Observability;
 using DevVault.API.RateLimiting;
+using DevVault.API.Versioning;
 using DevVault.Application;
 using DevVault.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -22,6 +24,8 @@ builder.Logging.Configure(options => options.ActivityTrackingOptions =
     ActivityTrackingOptions.TraceId | ActivityTrackingOptions.SpanId | ActivityTrackingOptions.ParentId);
 
 builder.Services.AddControllers();
+// Routes are /api/v{version}/...; one OpenAPI document per version.
+builder.Services.AddUrlSegmentApiVersioning();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -57,7 +61,8 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+        options.AddVersionEndpoints(app.Services.GetRequiredService<IApiVersionDescriptionProvider>()));
 }
 else
 {

@@ -19,9 +19,9 @@ public sealed class CorrelationTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task EveryResponse_CarriesAW3CTraceIdHeader()
     {
-        var ok = await Client.GetAsync("/api/snippets");
-        var notFound = await Client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
-        var unauthorized = await AnonymousClient.GetAsync("/api/snippets");
+        var ok = await Client.GetAsync("/api/v1/snippets");
+        var notFound = await Client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
+        var unauthorized = await AnonymousClient.GetAsync("/api/v1/snippets");
 
         foreach (var response in new[] { ok, notFound, unauthorized })
             TraceIdHeader(response).ShouldMatch("^[0-9a-f]{32}$");
@@ -32,7 +32,7 @@ public sealed class CorrelationTests(DevVaultApiFactory factory) : IntegrationTe
     public async Task IncomingTraceparent_IsContinued()
     {
         const string callerTraceId = "4bf92f3577b34da6a3ce929d0e0e4736";
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/snippets");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/snippets");
         request.Headers.Add("traceparent", $"00-{callerTraceId}-00f067aa0ba902b7-01");
 
         var response = await Client.SendAsync(request);
@@ -43,8 +43,8 @@ public sealed class CorrelationTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task ErrorBody_TraceId_MatchesTheHeader()
     {
-        var notFound = await Client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
-        var invalid = await Client.PostAsJsonAsync("/api/snippets", new { content = "code", language = "C#" });
+        var notFound = await Client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
+        var invalid = await Client.PostAsJsonAsync("/api/v1/snippets", new { content = "code", language = "C#" });
 
         foreach (var response in new[] { notFound, invalid })
         {
@@ -67,7 +67,7 @@ public sealed class CorrelationTests(DevVaultApiFactory factory) : IntegrationTe
         using var client = logged.CreateClientFor(UserA);
 
         // GetSnippetByIdHandler logs a warning for an unknown id.
-        var response = await client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
         var traceId = TraceIdHeader(response);
 
         var warning = logs.Entries.Single(e => e.Message.Contains("was not found", StringComparison.Ordinal));

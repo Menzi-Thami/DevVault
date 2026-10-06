@@ -8,20 +8,27 @@ in .NET 10 — the kind of skeleton worth copying into a real project rather tha
 ## What it does
 
 Stores code snippets — a title, a body, and a language — over a small REST API. Every
-`/api/snippets` call needs a bearer token; each user sees only their own snippets.
+`/api/v1/snippets` call needs a bearer token; each user sees only their own snippets.
 
 | Method | Route | Result |
 |---|---|---|
-| `POST` | `/api/snippets` | `201 Created` with the new snippet, owned by the caller |
-| `GET` | `/api/snippets?pageSize=&cursor=` | a page of the caller's snippets, newest first: `{ items, nextCursor }` |
-| `GET` | `/api/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
+| `POST` | `/api/v1/snippets` | `201 Created` with the new snippet, owned by the caller |
+| `GET` | `/api/v1/snippets?pageSize=&cursor=` | a page of the caller's snippets, newest first: `{ items, nextCursor }` |
+| `GET` | `/api/v1/snippets/{id}` | one of the caller's snippets, or `404` (also for another user's id) |
 | `GET` | `/health/live`, `/health/ready` | anonymous health probes |
 
 The list is keyset-paginated: `pageSize` defaults to 20 and is capped at 100 by the server, and
 list items are summaries (`id`, `title`, `language`, `createdAt`) without the body — fetch
-`/api/snippets/{id}` for that. Pass `nextCursor` back as `cursor` for the next page; it is `null`
+`/api/v1/snippets/{id}` for that. Pass `nextCursor` back as `cursor` for the next page; it is `null`
 on the last one. No token gives `401`. The owner is always the token's user (`oid` claim, or a GUID `sub`) — the
 body has no owner field, and one sent anyway is ignored.
+
+**Versioning.** The version is a URL segment (`/api/v1/...`, via `Asp.Versioning`); every
+response reports `api-supported-versions`, and an unknown version (`/api/v2/...`) is a `404`
+ProblemDetails. The unversioned `/api/snippets` routes were removed when versioning was added. A
+breaking contract change ships as `v2` beside `v1`, which is then marked deprecated (reported in
+`api-deprecated-versions`) before removal. Swagger UI (Development) has one document per version
+at `/swagger/v1/swagger.json`.
 
 ## Why it's laid out this way
 
@@ -82,7 +89,7 @@ Get an access token for the API's scope from the issuer (for Entra, any client a
 then send it as a bearer token:
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/snippets
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/v1/snippets
 ```
 
 `DevVault.API/DevVault.API.http` has the same calls; paste the token into its `@token` variable.
@@ -95,7 +102,7 @@ the client IP when there is no user. It runs after authentication so it knows wh
 | Applies to | Limiter | Default (`RateLimiting` section) |
 |---|---|---|
 | every endpoint | token bucket | burst of `TokenLimit` 100, refilled by `TokensPerPeriod` 50 every `ReplenishmentPeriodSeconds` 10 |
-| `POST /api/snippets` (also) | fixed window | `CreatePermitLimit` 20 per `CreateWindowSeconds` 60 |
+| `POST /api/v1/snippets` (also) | fixed window | `CreatePermitLimit` 20 per `CreateWindowSeconds` 60 |
 | `/health/*` | none | probes are exempt |
 
 Over the limit gives `429` with a `Retry-After` header (seconds) and a ProblemDetails body with

@@ -3,7 +3,7 @@
 @token = paste-an-access-token-here
 
 # Create a snippet -> 201 Created with a Location header. The owner is the token's user.
-POST {{DevVault.API_HostAddress}}/api/snippets
+POST {{DevVault.API_HostAddress}}/api/v1/snippets
 Authorization: Bearer {{token}}
 Content-Type: application/json
 Accept: application/json
@@ -17,21 +17,21 @@ Accept: application/json
 ###
 
 # List your snippets: { items, nextCursor }. Send nextCursor back as ?cursor= for the next page.
-GET {{DevVault.API_HostAddress}}/api/snippets?pageSize=20
+GET {{DevVault.API_HostAddress}}/api/v1/snippets?pageSize=20
 Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
 
 # Unknown (or someone else's) id -> 404 application/problem+json
-GET {{DevVault.API_HostAddress}}/api/snippets/00000000-0000-0000-0000-000000000001
+GET {{DevVault.API_HostAddress}}/api/v1/snippets/00000000-0000-0000-0000-000000000001
 Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
 
 # No token -> 401
-GET {{DevVault.API_HostAddress}}/api/snippets
+GET {{DevVault.API_HostAddress}}/api/v1/snippets
 Accept: application/json
 
 ###

@@ -14,7 +14,7 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task Create_Returns201_WithLocationThatResolvesToTheSnippet()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets", ValidBody());
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets", ValidBody());
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<SnippetDto>();
@@ -31,7 +31,7 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task GetById_Unknown_Returns404ProblemDetails()
     {
-        var response = await Client.GetAsync($"/api/snippets/{Guid.NewGuid()}");
+        var response = await Client.GetAsync($"/api/v1/snippets/{Guid.NewGuid()}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
@@ -40,7 +40,7 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task Create_WithBlankTitle_Returns400ProblemDetails()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets", ValidBody(title: "   "));
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets", ValidBody(title: "   "));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
@@ -49,7 +49,7 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task Create_WithMissingTitle_Returns400ValidationProblemDetails()
     {
-        var response = await Client.PostAsJsonAsync("/api/snippets",
+        var response = await Client.PostAsJsonAsync("/api/v1/snippets",
             new { content = "code", language = "C#" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -61,11 +61,11 @@ public sealed class SnippetsApiTests(DevVaultApiFactory factory) : IntegrationTe
     [Fact]
     public async Task List_ReturnsNewestFirst()
     {
-        await Client.PostAsJsonAsync("/api/snippets", ValidBody(title: "older"));
+        await Client.PostAsJsonAsync("/api/v1/snippets", ValidBody(title: "older"));
         Factory.Time.Advance(TimeSpan.FromMinutes(1));
-        await Client.PostAsJsonAsync("/api/snippets", ValidBody(title: "newer"));
+        await Client.PostAsJsonAsync("/api/v1/snippets", ValidBody(title: "newer"));
 
-        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/snippets");
+        var page = await Client.GetFromJsonAsync<CursorPage<SnippetSummaryDto>>("/api/v1/snippets");
 
         page.ShouldNotBeNull();
         page.Items.Select(s => s.Title).ShouldBe(["newer", "older"]);

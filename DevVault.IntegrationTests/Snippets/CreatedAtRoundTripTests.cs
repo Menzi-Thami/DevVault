@@ -16,7 +16,7 @@ public sealed class CreatedAtRoundTripTests(DevVaultApiFactory factory) : Integr
     [Fact]
     public async Task CreatedAt_IsIdenticalOnPostAndGet_AndCarriesAnOffset()
     {
-        var post = await Client.PostAsJsonAsync("/api/snippets",
+        var post = await Client.PostAsJsonAsync("/api/v1/snippets",
             new { title = "t", content = "c", language = "C#" });
         var posted = CreatedAt(await post.Content.ReadFromJsonAsync<JsonElement>());
 

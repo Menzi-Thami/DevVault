@@ -29,9 +29,9 @@ public sealed class RateLimitingTests(DevVaultApiFactory factory) : IntegrationT
         await using var host = LimitedHost(limits => limits.CreatePermitLimit = 2);
         using var client = host.CreateClientFor(UserA);
 
-        (await client.PostAsJsonAsync("/api/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
-        (await client.PostAsJsonAsync("/api/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
-        var rejected = await client.PostAsJsonAsync("/api/snippets", ValidBody());
+        (await client.PostAsJsonAsync("/api/v1/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await client.PostAsJsonAsync("/api/v1/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
+        var rejected = await client.PostAsJsonAsync("/api/v1/snippets", ValidBody());
 
         rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         rejected.Headers.RetryAfter.ShouldNotBeNull();
@@ -50,10 +50,10 @@ public sealed class RateLimitingTests(DevVaultApiFactory factory) : IntegrationT
         await using var host = LimitedHost(limits => limits.CreatePermitLimit = 1);
         using var client = host.CreateClientFor(UserA);
 
-        await client.PostAsJsonAsync("/api/snippets", ValidBody());
-        (await client.PostAsJsonAsync("/api/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        await client.PostAsJsonAsync("/api/v1/snippets", ValidBody());
+        (await client.PostAsJsonAsync("/api/v1/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
 
-        (await client.GetAsync("/api/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync("/api/v1/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -63,10 +63,10 @@ public sealed class RateLimitingTests(DevVaultApiFactory factory) : IntegrationT
         using var userA = host.CreateClientFor(UserA);
         using var userB = host.CreateClientFor(UserB);
 
-        await userA.PostAsJsonAsync("/api/snippets", ValidBody());
-        (await userA.PostAsJsonAsync("/api/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        await userA.PostAsJsonAsync("/api/v1/snippets", ValidBody());
+        (await userA.PostAsJsonAsync("/api/v1/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
 
-        (await userB.PostAsJsonAsync("/api/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await userB.PostAsJsonAsync("/api/v1/snippets", ValidBody())).StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     [Fact]
@@ -81,9 +81,9 @@ public sealed class RateLimitingTests(DevVaultApiFactory factory) : IntegrationT
         using var client = host.CreateClientFor(UserA);
 
         for (var i = 0; i < 3; i++)
-            (await client.GetAsync("/api/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await client.GetAsync("/api/v1/snippets")).StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var rejected = await client.GetAsync("/api/snippets");
+        var rejected = await client.GetAsync("/api/v1/snippets");
         rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         rejected.Headers.RetryAfter?.Delta.ShouldNotBeNull();
     }
@@ -114,8 +114,8 @@ public sealed class RateLimitingTests(DevVaultApiFactory factory) : IntegrationT
             services => services.ConfigureOpenTelemetryMeterProvider(m => m.AddInMemoryExporter(metrics)));
         using var client = host.CreateClientFor(UserA);
 
-        await client.PostAsJsonAsync("/api/snippets", ValidBody());
-        await client.PostAsJsonAsync("/api/snippets", ValidBody());
+        await client.PostAsJsonAsync("/api/v1/snippets", ValidBody());
+        await client.PostAsJsonAsync("/api/v1/snippets", ValidBody());
         host.Services.GetRequiredService<MeterProvider>().ForceFlush().ShouldBeTrue();
 
         metrics.Snapshot().Select(m => m.Name).ShouldContain("aspnetcore.rate_limiting.requests");

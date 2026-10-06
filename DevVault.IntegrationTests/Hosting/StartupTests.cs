@@ -68,7 +68,7 @@ public sealed class StartupTests
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/snippets");
+        var response = await client.GetAsync("/api/v1/snippets");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Headers.WwwAuthenticate.ShouldContain(h => h.Scheme == "Bearer");

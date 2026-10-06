@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using DevVault.API.Contracts;
 using DevVault.API.RateLimiting;
 using DevVault.Application.Common.Paging;
@@ -12,7 +13,8 @@ namespace DevVault.API.Controllers;
 
 // Authenticated by the fallback policy; every action is scoped to the caller's own snippets.
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion(1)]
+[Route("api/v{version:apiVersion}/snippets")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class SnippetsController : ControllerBase
