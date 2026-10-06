@@ -87,6 +87,32 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/snippets
 
 `DevVault.API/DevVault.API.http` has the same calls; paste the token into its `@token` variable.
 
+## Observability
+
+Traces, metrics and logs go through OpenTelemetry: incoming requests (ASP.NET Core), outgoing
+`HttpClient` calls, every SQL query EF Core sends (SqlClient, as a child span of the request that
+caused it), and runtime metrics (GC, thread pool, allocations). Health probes are not traced. The
+`service.name` is `Observability:ServiceName` (default `devvault-api`, validated at startup).
+
+Nothing is exported unless you say where — the standard variables decide, so a machine with
+neither set needs no collector and logs nothing about it:
+
+| Set | Sends to |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | any OTLP endpoint (the Aspire dashboard, an OpenTelemetry Collector, Jaeger, ...) |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Monitor / Application Insights |
+
+Both can be set at once. To see traces locally, run the standalone
+[Aspire dashboard](https://learn.microsoft.com/dotnet/aspire/fundamentals/dashboard/standalone)
+(a container, or `dotnet tool`) and point the API at its OTLP port:
+
+```bash
+docker run --rm -p 18888:18888 -p 4317:18889 mcr.microsoft.com/dotnet/aspire-dashboard:latest
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 dotnet run --project DevVault.API
+```
+
+then open http://localhost:18888 (the container prints a login token on startup).
+
 ## Tests
 
 ```bash

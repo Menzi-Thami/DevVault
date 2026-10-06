@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using DevVault.API.Authentication;
 using DevVault.API.ErrorHandling;
+using DevVault.API.Observability;
 using DevVault.Application;
 using DevVault.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -28,6 +29,9 @@ builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
 // Bearer tokens from the issuer in Authentication:Jwt; everything requires a signed-in user.
 builder.Services.AddJwtAuthentication();
+
+// Traces, metrics and logs via OpenTelemetry; exported only where an endpoint is configured.
+builder.Services.AddObservability(builder.Configuration);
 
 // Each layer owns its own registration (composition root).
 builder.Services.AddApplication();

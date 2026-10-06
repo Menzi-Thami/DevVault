@@ -45,6 +45,15 @@ public sealed class StartupTests
     }
 
     [Fact]
+    public void Startup_WithoutTelemetryServiceName_FailsAtBoot()
+    {
+        using var factory = CreateFactory().WithWebHostBuilder(builder =>
+            builder.UseSetting("Observability:ServiceName", ""));
+
+        ShouldFailValidation(factory, nameof(DevVault.API.Observability.ObservabilityOptions.ServiceName));
+    }
+
+    [Fact]
     public async Task AnonymousRequest_IsChallengedForABearerToken()
     {
         using var factory = CreateFactory();
