@@ -87,6 +87,23 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:5109/api/snippets
 
 `DevVault.API/DevVault.API.http` has the same calls; paste the token into its `@token` variable.
 
+## Rate limiting
+
+The built-in ASP.NET Core limiter, partitioned per caller: the signed-in user (`oid`/`sub`), or
+the client IP when there is no user. It runs after authentication so it knows who the caller is.
+
+| Applies to | Limiter | Default (`RateLimiting` section) |
+|---|---|---|
+| every endpoint | token bucket | burst of `TokenLimit` 100, refilled by `TokensPerPeriod` 50 every `ReplenishmentPeriodSeconds` 10 |
+| `POST /api/snippets` (also) | fixed window | `CreatePermitLimit` 20 per `CreateWindowSeconds` 60 |
+| `/health/*` | none | probes are exempt |
+
+Over the limit gives `429` with a `Retry-After` header (seconds) and a ProblemDetails body with
+`code: rate_limited`. The values are validated at startup (a zero stops the app). Rejections show
+up in the `aspnetcore.rate_limiting.requests` metric. Limits are per instance, so they multiply
+when scaled out; behind a proxy, configure forwarded headers or every anonymous caller shares the
+proxy's IP. This is fair-use protection, not DDoS protection — that belongs at the edge.
+
 ## Observability
 
 Traces, metrics and logs go through OpenTelemetry: incoming requests (ASP.NET Core), outgoing

@@ -54,6 +54,15 @@ public sealed class StartupTests
     }
 
     [Fact]
+    public void Startup_WithAZeroRateLimit_FailsAtBoot()
+    {
+        using var factory = CreateFactory().WithWebHostBuilder(builder =>
+            builder.UseSetting("RateLimiting:CreatePermitLimit", "0"));
+
+        ShouldFailValidation(factory, nameof(DevVault.API.RateLimiting.RateLimitingOptions.CreatePermitLimit));
+    }
+
+    [Fact]
     public async Task AnonymousRequest_IsChallengedForABearerToken()
     {
         using var factory = CreateFactory();

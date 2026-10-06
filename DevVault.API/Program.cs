@@ -1,6 +1,7 @@
 using DevVault.API.Authentication;
 using DevVault.API.ErrorHandling;
 using DevVault.API.Observability;
+using DevVault.API.RateLimiting;
 using DevVault.Application;
 using DevVault.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -35,6 +36,9 @@ builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 // Bearer tokens from the issuer in Authentication:Jwt; everything requires a signed-in user.
 builder.Services.AddJwtAuthentication();
 
+// Per-caller limits (user, else IP), stricter on create; 429 ProblemDetails + Retry-After.
+builder.Services.AddApiRateLimiting();
+
 // Traces, metrics and logs via OpenTelemetry; exported only where an endpoint is configured.
 builder.Services.AddObservability(builder.Configuration);
 
@@ -65,15 +69,20 @@ else
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+// After authentication, so limits partition by the signed-in user rather than only by IP.
+app.UseRateLimiter();
 
 // Liveness has no dependency checks, so a database blip doesn't get every instance restarted.
-// Probes carry no token, so both opt out of the authenticated fallback policy.
+// Probes carry no token, so both opt out of the authenticated fallback policy, and a busy
+// client must never get the instance marked unhealthy, so both are exempt from rate limiting.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
-    .AllowAnonymous();
+    .AllowAnonymous()
+    .DisableRateLimiting();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains(HealthCheckTags.Ready)
-}).AllowAnonymous();
+}).AllowAnonymous()
+    .DisableRateLimiting();
 app.MapControllers();
 
 app.Run();
