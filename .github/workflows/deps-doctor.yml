@@ -71,7 +71,7 @@ jobs:
             echo "- \`$id\` $versions → $latest" >> "$RUNNER_TEMP/pinned.txt"
           done < "$RUNNER_TEMP/found.txt"
 
-          if git diff --quiet; then
+          if git diff --quiet -- Directory.Packages.props; then
             echo "Nothing vulnerable to pin."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -87,7 +87,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B "$BRANCH"
-          git commit -qam 'fix(deps): pin patched transitive packages' -m "$(cat "$RUNNER_TEMP/pinned.txt")"
+          git add Directory.Packages.props
+          git commit -qm 'fix(deps): pin patched transitive packages' -m "$(cat "$RUNNER_TEMP/pinned.txt")"
           git push -qf origin "$BRANCH"
 
           body="NuGet audit flagged packages that only come in transitively, so Dependabot won't bump them. Pinned to their latest patched releases:
