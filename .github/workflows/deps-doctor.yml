@@ -31,6 +31,7 @@ env:
 jobs:
   pin-vulnerable:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -105,6 +106,7 @@ jobs:
 
   refresh-dependabot:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Update failing, out-of-date Dependabot PRs and rerun CI
         run: |
