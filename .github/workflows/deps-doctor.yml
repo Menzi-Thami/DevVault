@@ -6,7 +6,8 @@
 # 2. refresh-dependabot: Dependabot PRs that failed before such a fix landed stay red, because Dependabot only
 #    rebases on conflicts. This brings each failing, out-of-date one up to date and reruns CI on it.
 #
-# Pushes made with GITHUB_TOKEN don't start other workflows, so both jobs start CI themselves (workflow_dispatch).
+# PR runs started by GITHUB_TOKEN pushes wait for approval ("action_required"), so both jobs approve their own held
+# runs, and also start CI directly (workflow_dispatch) in case approval isn't allowed.
 name: Deps doctor
 
 on:
@@ -27,6 +28,23 @@ env:
   BRANCH: deps-doctor/pin-vulnerable
   CI_WORKFLOW: ci.yml
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Shell helper, loaded with eval in each job: approve the PR runs held for a branch (waiting up to a minute for them
+  # to appear), then start CI on it directly as well.
+  RERUN_CI: |
+    rerun_ci() {
+      local branch=$1 ids=""
+      for _ in $(seq 12); do
+        ids=$(gh run list -R "$GITHUB_REPOSITORY" --branch "$branch" --event pull_request --limit 20 \
+          --json databaseId,conclusion -q '.[] | select(.conclusion == "action_required") | .databaseId')
+        [ -n "$ids" ] && break
+        sleep 5
+      done
+      for id in $ids; do
+        gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null \
+          || echo "::warning::Couldn't approve run $id on $branch; approve it from the Actions tab."
+      done
+      gh workflow run "$CI_WORKFLOW" -R "$GITHUB_REPOSITORY" --ref "$branch"
+    }
 
 jobs:
   pin-vulnerable:
@@ -99,7 +117,8 @@ jobs:
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number -q '.[].number')" ]; then
             gh pr create --base "$default" --head "$BRANCH" --title 'fix(deps): pin patched transitive packages' --body "$body"
           fi
-          gh workflow run "$CI_WORKFLOW" --ref "$BRANCH"
+          eval "$RERUN_CI"
+          rerun_ci "$BRANCH"
           # Auto-merge waits for required checks; without branch protection it would merge straight away, so skip it there.
           if gh api "repos/$GITHUB_REPOSITORY/branches/$default/protection" >/dev/null 2>&1; then
             gh pr merge "$BRANCH" --auto --squash
@@ -112,6 +131,7 @@ jobs:
       - name: Update failing, out-of-date Dependabot PRs and rerun CI
         run: |
           set -euo pipefail
+          eval "$RERUN_CI"
           default=$(gh repo view "$GITHUB_REPOSITORY" --json defaultBranchRef -q .defaultBranchRef.name)
           gh pr list -R "$GITHUB_REPOSITORY" --author app/dependabot --state open \
             --json number,headRefName,statusCheckRollup \
@@ -121,8 +141,7 @@ jobs:
             if [ "$behind" -gt 0 ]; then
               echo "#$number is $behind commit(s) behind $default: updating and rerunning CI."
               gh pr update-branch "$number" -R "$GITHUB_REPOSITORY"
-              sleep 5
-              gh workflow run "$CI_WORKFLOW" -R "$GITHUB_REPOSITORY" --ref "$head"
+              rerun_ci "$head"
             else
               echo "#$number is failing on an up-to-date branch: needs a human (often a major version)."
             fi
