@@ -24,10 +24,10 @@
     <!-- OpenTelemetry: the SDK, its exporters and the instrumentation libraries move together. -->
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.20.2" />
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
 
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.1" />
